@@ -1,7 +1,7 @@
-// Netlify Serverless Chat Function for Google Gemini AI
-// Expects POST with JSON: { contents: [...], generationConfig?: {...} }
-// Returns the response from Gemini API
-// Requires environment variable: GEMINI_API_KEY
+// Netlify Serverless Chat Function for Groq AI
+// Expects POST with JSON: { model, messages, temperature, max_tokens, top_p }
+// Returns the response from Groq API
+// Requires environment variable: GROQ_API_KEY
 
 const fetch = require('node-fetch');
 
@@ -34,11 +34,11 @@ exports.handler = async (event) => {
   }
 
   // Check for API key
-  if (!process.env.GEMINI_API_KEY) {
-    return { 
-      statusCode: 500, 
-      headers: corsHeaders(), 
-      body: JSON.stringify({ error: 'GEMINI_API_KEY not configured in Netlify environment variables' }) 
+  if (!process.env.GROQ_API_KEY) {
+    return {
+      statusCode: 500,
+      headers: corsHeaders(),
+      body: JSON.stringify({ error: 'GROQ_API_KEY not configured in Netlify environment variables' })
     };
   }
 
@@ -49,51 +49,51 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders(), body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
 
-  // Validate payload has contents array
-  if (!payload.contents || !Array.isArray(payload.contents)) {
-    return { 
-      statusCode: 400, 
-      headers: corsHeaders(), 
-      body: JSON.stringify({ error: 'Request must include "contents" array' }) 
+  // Validate payload has messages array
+  if (!payload.messages || !Array.isArray(payload.messages)) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders(),
+      body: JSON.stringify({ error: 'Request must include "messages" array' })
     };
   }
 
-  // Build Gemini API URL - use gemini-2.5-flash (verified working model)
-  const model = payload.model || 'gemini-2.5-flash';
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  // Build Groq API URL
+  const apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
-  // Prepare request body for Gemini
+  // Prepare request body for Groq (OpenAI-compatible format)
   const requestBody = {
-    contents: payload.contents,
-    generationConfig: payload.generationConfig || {
-      temperature: 0.8,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 1024,
-    }
+    model: payload.model || 'llama-3.3-70b-versatile',
+    messages: payload.messages,
+    temperature: payload.temperature || 0.7,
+    max_tokens: payload.max_tokens || 512,
+    top_p: payload.top_p || 0.95
   };
 
   try {
-    console.log('Calling Gemini API...');
+    console.log('Calling Groq API...');
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
       body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API Error:', errorText);
+      console.error('Groq API Error:', errorText);
       return {
         statusCode: response.status,
         headers: corsHeaders(),
-        body: JSON.stringify({ error: `Gemini API Error: ${response.status}`, details: errorText })
+        body: JSON.stringify({ error: `Groq API Error: ${response.status}`, details: errorText })
       };
     }
 
     const data = await response.json();
-    
-    // Return the full Gemini response
+
+    // Return the full Groq response
     return {
       statusCode: 200,
       headers: corsHeaders(),
@@ -101,11 +101,11 @@ exports.handler = async (event) => {
     };
 
   } catch (err) {
-    console.error('Gemini API request failed:', err);
+    console.error('Groq API request failed:', err);
     return {
       statusCode: 500,
       headers: corsHeaders(),
-      body: JSON.stringify({ error: err.message || 'Failed to call Gemini API' })
+      body: JSON.stringify({ error: err.message || 'Failed to call Groq API' })
     };
   }
 };
