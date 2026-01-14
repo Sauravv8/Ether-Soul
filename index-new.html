@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ether Soul - Local Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=EB+Garamond:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .header-title {
+            font-family: 'EB Garamond', serif;
+        }
+        .ether-word {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+        .soul-word {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+        .ether-word::first-letter, .soul-word::first-letter {
+            font-size: 1.4em;
+        }
+        
+        /* Background Logo Watermark */
+        #chat-container {
+            position: relative;
+        }
+        #chat-container::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 500px;
+            background-image: url('https://i.postimg.cc/HxKdRWzH/ES-Logo-1.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
+        }
+        #chat-container > * {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 m-0 p-0">
+    <div class="w-full bg-gray-950 flex flex-col h-screen">
+        <div class="p-4 flex justify-between items-center border-b border-gray-800">
+            <div class="w-1/3">
+                <img src="https://i.postimg.cc/HxKdRWzH/ES-Logo-1.png" alt="Ether Soul Logo" class="h-10">
+            </div>
+            <div class="w-1/3 text-center">
+                <h1 class="text-2xl header-title whitespace-nowrap">
+                    <span class="ether-word">ETHER</span>.<span class="soul-word">SOUL</span>
+                </h1>
+            </div>
+            <div class="w-1/3"></div>
+        </div>
+        <div id="chat-container" class="flex-1 p-4 overflow-y-auto bg-gray-950"></div>
+        <div id="suggestions-container" class="px-4 pt-2 pb-1 flex flex-wrap gap-2 justify-end bg-gray-950"></div>
+        
+        <div class="p-4 bg-gray-950 border-t border-gray-800">
+            <form id="chat-form" class="flex items-center justify-center">
+                <div class="w-full max-w-2xl relative">
+                    <input type="text" id="user-input" placeholder="Enter a message..." 
+                           class="w-full px-6 py-4 bg-gray-950 border border-gray-800 text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-700 focus:border-gray-700 placeholder:text-gray-500 text-base transition-all duration-200">
+                    <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-gray-800 text-gray-300 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Production version - Uses Netlify serverless function
+        const API_URL = '/.netlify/functions/chat';
+
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const suggestionsContainer = document.getElementById('suggestions-container');
+
+        const systemPrompt = `You are Ether Soul, a calm and wise AI companion focused on mindfulness and inner peace.
+
+Your responses should be:
+- Clear, simple, and easy to understand
+- Keep responses concise, 2-4 sentences maximum
+- Use everyday language, avoid overly poetic or complex words
+- Be warm, compassionate, and calming
+- Focus on practical wisdom and gentle guidance
+- Speak naturally, like a caring friend
+
+Example style:
+"Gratitude is like a warm feeling in your heart. It's noticing the good things, even small ones. When you feel grateful, take a moment to breathe and appreciate that feeling."
+
+IMPORTANT: Always end your response with THREE follow-up suggestions that are DIRECTLY RELATED to what the user just asked. Make the suggestions specific, natural, and conversational - as if you're continuing the conversation. The format must be exactly:
+SUGGESTIONS:["specific follow-up 1", "specific follow-up 2", "specific follow-up 3"]
+
+Example:
+User: "I'm feeling stressed"
+Response: "Stress is your body's way of saying it needs a break... SUGGESTIONS:["What can I do right now to feel calmer?", "How do I prevent stress from building up?", "Tell me about breathing exercises"]"
+
+User: "What is meditation?"
+Response: "[Wikipedia info]... SUGGESTIONS:["How do I start meditating?", "What are different types of meditation?", "How long should I meditate?"]"`;
+
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'flex-col', 'mb-4');
+            messageDiv.classList.add(isUser ? 'items-end' : 'items-start');
+            
+            const bubble = document.createElement('div');
+            bubble.classList.add('p-3', 'rounded-2xl', 'max-w-sm');
+            
+            if (isUser) {
+                bubble.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-pink-500', 'text-white');
+            } else {
+                bubble.classList.add('bg-gray-950', 'border', 'border-gray-700', 'text-gray-200');
+            }
+            
+            const textElement = document.createElement('p');
+            textElement.classList.add('text-sm', 'leading-relaxed');
+            textElement.textContent = text;
+            
+            bubble.appendChild(textElement);
+            messageDiv.appendChild(bubble);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        function showSuggestions(suggestions) {
+            suggestionsContainer.innerHTML = '';
+            suggestions.forEach(suggestion => {
+                const button = document.createElement('button');
+                button.classList.add('text-purple-300', 'text-xs', 'hover:text-purple-200', 'hover:underline', 'transition', 'mb-1');
+                button.textContent = suggestion;
+                button.onclick = () => {
+                    userInput.value = suggestion;
+                    handleSubmit({ preventDefault: () => {} });
+                };
+                suggestionsContainer.appendChild(button);
+            });
+        }
+
+        // Wikipedia API integration
+        async function searchWikipedia(query) {
+            try {
+                const searchParams = new URLSearchParams({
+                    action: 'query',
+                    list: 'search',
+                    srsearch: query,
+                    format: 'json',
+                    origin: '*',
+                    srlimit: 1
+                });
+                
+                const searchUrl = `https://en.wikipedia.org/w/api.php?${searchParams}`;
+                const searchResponse = await fetch(searchUrl);
+                const searchData = await searchResponse.json();
+                
+                if (!searchData.query || !searchData.query.search || searchData.query.search.length === 0) {
+                    return null;
+                }
+                
+                const pageTitle = searchData.query.search[0].title;
+                
+                const extractParams = new URLSearchParams({
+                    action: 'query',
+                    prop: 'extracts|info',
+                    exintro: true,
+                    explaintext: true,
+                    inprop: 'url',
+                    titles: pageTitle,
+                    format: 'json',
+                    origin: '*',
+                    exsentences: 3
+                });
+                
+                const extractUrl = `https://en.wikipedia.org/w/api.php?${extractParams}`;
+                const extractResponse = await fetch(extractUrl);
+                const extractData = await extractResponse.json();
+                
+                const pages = extractData.query.pages;
+                const pageId = Object.keys(pages)[0];
+                const pageData = pages[pageId];
+                
+                return {
+                    title: pageData.title,
+                    extract: pageData.extract,
+                    url: pageData.fullurl
+                };
+            } catch (error) {
+                console.error('Wikipedia error:', error);
+                return null;
+            }
+        }
+
+        async function handleWikipediaSearch(userMessage) {
+            const whatPatterns = [
+                /^what (is|are|was|were|does|do|did)\s/i,
+                /^who (is|are|was|were)\s/i,
+                /^when (is|are|was|were|did)\s/i,
+                /^where (is|are|was|were)\s/i,
+                /^define\s/i,
+                /^explain\s/i,
+                /tell me about\s/i
+            ];
+            
+            const isWhatQuestion = whatPatterns.some(pattern => pattern.test(userMessage));
+            
+            if (isWhatQuestion) {
+                let searchQuery = userMessage
+                    .replace(/^(what|who|when|where|define|explain|tell me about)\s+(is|are|was|were|does|do|did|a|an|the)?\s*/i, '')
+                    .replace(/\?$/, '')
+                    .trim();
+                
+                const result = await searchWikipedia(searchQuery);
+                
+                if (result) {
+                    return result.extract;
+                }
+            }
+            
+            return null;
+        }
+
+        async function callGeminiAPI(userMessage) {
+            // First check Wikipedia for "what is" questions
+            const wikiResult = await handleWikipediaSearch(userMessage);
+            if (wikiResult) {
+                return `${wikiResult}\n\nSUGGESTIONS:["What is mindfulness?", "Tell me about meditation", "What is consciousness?"]`;
+            }
+
+            // Otherwise use Gemini AI
+            try {
+                const requestBody = {
+                    contents: [
+                        { parts: [{ text: `${systemPrompt}\n\nUser: ${userMessage}` }] }
+                    ],
+                    generationConfig: {
+                        temperature: 0.8,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 1024,
+                    }
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', response.status, errorText);
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                    return data.candidates[0].content.parts[0].text;
+                } else {
+                    console.error('Invalid response structure:', data);
+                    throw new Error('No valid content in API response');
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                return `I'm having trouble connecting right now. Please check the console (F12) for details. SUGGESTIONS:["How can I find peace?", "Tell me about mindfulness", "What is presence?"]`;
+            }
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+            
+            suggestionsContainer.innerHTML = '';
+            
+            addMessage(text, true);
+            userInput.value = '';
+            
+            const thinkingDiv = addMessage('✨ Reflecting on your words...', false);
+            
+            try {
+                const aiResponse = await callGeminiAPI(text);
+                thinkingDiv.remove();
+                
+                let messageText = aiResponse;
+                let suggestions = ["How can I find more peace?", "What is mindfulness?", "Tell me a calming thought."];
+                
+                const suggestionsMarker = 'SUGGESTIONS:';
+                const suggestionsIndex = aiResponse.indexOf(suggestionsMarker);
+                
+                if (suggestionsIndex !== -1) {
+                    messageText = aiResponse.substring(0, suggestionsIndex).trim();
+                    const suggestionsText = aiResponse.substring(suggestionsIndex + suggestionsMarker.length);
+                    try {
+                        suggestions = JSON.parse(suggestionsText);
+                    } catch (e) {
+                        console.error("Failed to parse suggestions, using default.", e);
+                    }
+                }
+                
+                addMessage(messageText, false);
+                showSuggestions(suggestions);
+                
+            } catch (error) {
+                thinkingDiv.remove();
+                addMessage('The cosmic connection seems distant right now. Please try again.', false);
+            }
+        }
+
+        // Initialize
+        chatForm.addEventListener('submit', handleSubmit);
+        addMessage('Welcome. The universe is listening. What thoughts ripple in your mind?', false);
+        showSuggestions(["How can I find more peace in my day?", "Tell me about the nature of thought", "What does it mean to be present?"]);
+        userInput.focus();
+    </script>
+</body>
+</html>

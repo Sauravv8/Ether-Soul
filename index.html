@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ether Soul - Local Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=EB+Garamond:wght@700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        .header-title {
+            font-family: 'EB Garamond', serif;
+        }
+
+        .ether-word {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+
+        .soul-word {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+
+        .ether-word::first-letter,
+        .soul-word::first-letter {
+            font-size: 1.4em;
+        }
+
+        /* Background Logo Watermark */
+        #chat-container {
+            position: relative;
+        }
+
+        #chat-container::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 500px;
+            background-image: url('https://i.postimg.cc/HxKdRWzH/ES-Logo-1.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #chat-container>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Heartbeat animation for typing indicator */
+        @keyframes heartbeat {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.15);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .thinking-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 22px;
+            background: rgba(139, 92, 246, 0.12);
+            border-radius: 24px;
+            margin: 10px 0;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .thinking-indicator .heart-icon {
+            animation: heartbeat 1.2s ease-in-out infinite;
+            font-size: 20px;
+            filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
+        }
+
+        .thinking-indicator .thinking-text {
+            color: rgba(167, 139, 250, 0.9);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .thinking-indicator .dots {
+            display: flex;
+            gap: 5px;
+            margin-left: 3px;
+        }
+
+        .thinking-indicator .dot {
+            width: 7px;
+            height: 7px;
+            background: rgba(139, 92, 246, 0.8);
+            border-radius: 50%;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .thinking-indicator .dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .thinking-indicator .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .thinking-indicator .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* Auth Modal Styles */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .auth-modal-content {
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 16px;
+            padding: 35px 40px 30px 40px;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8);
+            animation: slideUp 0.3s ease;
+            position: relative;
+            overflow: visible;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .auth-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 28px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .auth-close:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 14px 18px 14px 45px;
+            background: rgba(15, 28, 46, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 15px;
+            transition: all 0.3s;
+            margin-bottom: 18px;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: rgba(255, 165, 0, 0.5);
+            background: rgba(15, 28, 46, 0.9);
+            box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.1);
+        }
+
+        .auth-input-wrapper {
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        .auth-input-wrapper input {
+            margin-bottom: 0;
+        }
+
+        .auth-input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+            width: 16px;
+            height: 16px;
+        }
+
+        .auth-input-icon-right {
+            position: absolute;
+            right: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .auth-input-icon-right:hover {
+            color: #9ca3af;
+        }
+
+        .auth-input::placeholder {
+            color: #6b7280;
+        }
+
+        .auth-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ff9500 0%, #ff7b00 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 6px;
+            box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);
+        }
+
+        .auth-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 149, 0, 0.4);
+            background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
+        }
+
+        .auth-submit:active {
+            transform: translateY(0);
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 16px 0;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-divider span {
+            padding: 0 16px;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 16px;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        .auth-switch button {
+            background: none;
+            border: none;
+            color: #ff9500;
+            cursor: pointer;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .auth-switch button:hover {
+            color: #ffaa00;
+        }
+
+        .auth-forgot {
+            color: #ff9500;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .auth-forgot:hover {
+            color: #ffaa00;
+        }
+
+        .auth-remember {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .auth-remember label {
+            display: flex;
+            align-items: center;
+            color: #9ca3af;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .auth-remember input[type="checkbox"] {
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
+        .auth-modal-content>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .social-btn {
+            width: 100%;
+            padding: 13px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .social-btn:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-950 m-0 p-0">
+    <!-- Authentication Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <button class="auth-close" onclick="closeAuthModal()">&times;</button>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl header-title mb-2">
+                        <span class="ether-word">ETHER</span> <span class="soul-word">SOUL</span>
+                    </h2>
+                    <p class="text-gray-400 text-sm">Sign in to continue</p>
+                </div>
+
+                <!-- Google Sign-In Button -->
+                <button type="button" onclick="handleSocialLogin('Google')" class="social-btn"
+                    style="margin-bottom: 16px; background: white; color: #1f2937; border: 1px solid #e5e7eb;">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <!-- Guest Access Option -->
+                <div class="auth-divider" style="margin: 20px 0 15px 0;"><span>or</span></div>
+                <button type="button" onclick="continueAsGuest()" class="social-btn"
+                    style="margin-bottom: 0; background: rgba(100, 100, 100, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Continue as Guest
+                </button>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" style="display: none;">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl header-title mb-2">
+                        <span class="ether-word">ETHER</span> <span class="soul-word">SOUL</span>
+                    </h2>
+                    <p class="text-gray-400 text-sm">Create your account</p>
+                </div>
+
+                <!-- Google Sign-In Button -->
+                <button type="button" onclick="handleSocialLogin('Google')" class="social-btn"
+                    style="margin-bottom: 16px; background: white; color: #1f2937; border: 1px solid #e5e7eb;">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <!-- Guest Access Option -->
+                <div class="auth-divider" style="margin: 20px 0 15px 0;"><span>or</span></div>
+                <button type="button" onclick="continueAsGuest()" class="social-btn"
+                    style="margin-bottom: 0; background: rgba(100, 100, 100, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Continue as Guest
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full bg-gray-950 flex flex-col h-screen">
+        <div class="p-4 flex justify-between items-center border-b border-gray-800">
+            <div class="w-1/3">
+                <img src="https://i.postimg.cc/HxKdRWzH/ES-Logo-1.png" alt="Ether Soul Logo" class="h-10">
+            </div>
+            <div class="w-1/3 text-center">
+                <h1 class="text-2xl header-title whitespace-nowrap">
+                    <span class="ether-word">ETHER</span>.<span class="soul-word">SOUL</span>
+                </h1>
+            </div>
+            <div class="w-1/3 flex justify-end items-center gap-3">
+                <!-- Guest Indicator -->
+                <div id="guestIndicator" style="display: none;"
+                    class="flex items-center gap-2 px-3 py-2 bg-gray-800 border border-purple-500/30 rounded-full">
+                    <svg width="18" height="18" fill="none" stroke="#a78bfa" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span class="text-purple-400 text-sm font-medium">Guest</span>
+                </div>
+
+                <button id="loginBtn"
+                    class="px-5 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200 border border-gray-700 rounded-full hover:border-gray-600">
+                    Sign In
+                </button>
+                <button id="signupBtn"
+                    class="px-5 py-2 text-sm font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-gray-950 rounded-full hover:from-yellow-400 hover:to-orange-400 transition-all duration-200 shadow-lg">
+                    Get Started
+                </button>
+            </div>
+        </div>
+        <div id="chat-container" class="flex-1 p-4 overflow-y-auto bg-gray-950"></div>
+        <div id="suggestions-container" class="px-4 pt-2 pb-1 flex flex-wrap gap-2 justify-end bg-gray-950"></div>
+
+        <div class="p-4 bg-gray-950 border-t border-gray-800">
+            <form id="chat-form" class="flex items-center justify-center">
+                <div class="w-full max-w-2xl relative">
+                    <input type="text" id="user-input" placeholder="Enter a message..."
+                        class="w-full px-6 py-4 bg-gray-950 border border-gray-800 text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-700 focus:border-gray-700 placeholder:text-gray-500 text-base transition-all duration-200">
+                    <button type="submit"
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-gray-800 text-gray-300 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxGj9JxF_hHZN_KqQXz8YqY3rHvPxMxQs",
+            authDomain: "ether-soul.firebaseapp.com",
+            projectId: "ether-soul",
+            storageBucket: "ether-soul.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Google Auth Provider
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+        // Authentication Functions
+        const authModal = document.getElementById('authModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+
+        // Open modal with login form
+        loginBtn.addEventListener('click', () => {
+            authModal.classList.add('active');
+            switchToLogin();
+        });
+
+        // Open modal with signup form
+        signupBtn.addEventListener('click', () => {
+            authModal.classList.add('active');
+            switchToSignup();
+        });
+
+        // Close modal
+        function closeAuthModal() {
+            authModal.classList.remove('active');
+        }
+
+        // Close on background click
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) {
+                closeAuthModal();
+            }
+        });
+
+        // Switch between forms
+        function switchToLogin() {
+            loginForm.style.display = 'block';
+            signupForm.style.display = 'none';
+        }
+
+        function switchToSignup() {
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'block';
+        }
+
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
+            }
+        }
+
+        // Handle login submission
+        async function handleLogin(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            try {
+                // Show loading state
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Signing in...';
+                submitBtn.disabled = true;
+
+                // Firebase authentication
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                console.log('Login successful:', user.email);
+
+                // Show success message
+                showAuthSuccess('Welcome back! Your spiritual journey continues...');
+
+                // Store user session
+                localStorage.setItem('etherSoulUser', JSON.stringify({
+                    uid: user.uid,
+                    email: user.email,
+                    name: user.displayName || email.split('@')[0],
+                    loggedIn: true,
+                    loginTime: new Date().toISOString()
+                }));
+
+                // Update UI
+                updateUIForLoggedInUser(user);
+                closeAuthModal();
+
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMessage = 'Login failed. Please try again.';
+
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'No account found with this email. Please sign up first.';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Incorrect password. Please try again.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Too many failed attempts. Please try again later.';
+                }
+
+                alert(errorMessage);
+
+                // Reset button
+                const submitBtn = event.target.querySelector('button[type=\"submit\"]');
+                submitBtn.textContent = 'Sign In';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Handle signup submission
+        async function handleSignup(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                alert('Passwords do not match. Please try again.');
+                return;
+            }
+
+            // Validate password strength
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long.');
+                return;
+            }
+
+            try {
+                // Show loading state
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Creating account...';
+                submitBtn.disabled = true;
+
+                // Firebase authentication - create user
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Update user profile with name
+                await user.updateProfile({
+                    displayName: name
+                });
+
+                console.log('Signup successful:', user.email);
+
+                // Show success message
+                showAuthSuccess(`Welcome ${name}! Your spiritual journey begins now...`);
+
+                // Store user session
+                localStorage.setItem('etherSoulUser', JSON.stringify({
+                    uid: user.uid,
+                    name: name,
+                    email: user.email,
+                    loggedIn: true,
+                    signupTime: new Date().toISOString()
+                }));
+
+                // Update UI
+                updateUIForLoggedInUser(user);
+                closeAuthModal();
+
+            } catch (error) {
+                console.error('Signup error:', error);
+                let errorMessage = 'Signup failed. Please try again.';
+
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'This email is already registered. Please login instead.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password is too weak. Please use a stronger password.';
+                }
+
+                alert(errorMessage);
+
+                // Reset button
+                const submitBtn = event.target.querySelector('button[type=\"submit\"]');
+                submitBtn.textContent = 'Sign Up';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Handle social login with Google
+        async function handleSocialLogin(provider) {
+            if (provider === 'Google') {
+                try {
+                    console.log('Initiating Google Sign-In...');
+
+                    // Sign in with Google popup
+                    const result = await auth.signInWithPopup(googleProvider);
+                    const user = result.user;
+
+                    console.log('Google login successful:', user.email);
+
+                    // Show success message
+                    showAuthSuccess(`Welcome ${user.displayName || 'back'}! Connecting with Google...`);
+
+                    // Store user session
+                    localStorage.setItem('etherSoulUser', JSON.stringify({
+                        uid: user.uid,
+                        email: user.email,
+                        name: user.displayName,
+                        photoURL: user.photoURL,
+                        provider: 'google',
+                        loggedIn: true,
+                        loginTime: new Date().toISOString()
+                    }));
+
+                    // Update UI
+                    updateUIForLoggedInUser(user);
+                    closeAuthModal();
+
+                } catch (error) {
+                    console.error('Google login error:', error);
+                    let errorMessage = 'Google sign-in failed. Please try again.';
+
+                    if (error.code === 'auth/popup-closed-by-user') {
+                        errorMessage = 'Sign-in cancelled.';
+                    } else if (error.code === 'auth/popup-blocked') {
+                        errorMessage = 'Pop-up blocked. Please allow pop-ups for this site.';
+                    }
+
+                    alert(errorMessage);
+                }
+            }
+        }
+
+        // Update UI for logged-in user
+        function updateUIForLoggedInUser(user) {
+            loginBtn.textContent = 'Profile';
+            loginBtn.onclick = () => {
+                alert(`Logged in as: ${user.displayName || user.email}`);
+            };
+            signupBtn.textContent = 'Logout';
+            signupBtn.onclick = () => {
+                auth.signOut().then(() => {
+                    localStorage.removeItem('etherSoulUser');
+                    location.reload();
+                });
+            };
+        }
+
+        // Handle guest access
+        function continueAsGuest() {
+            console.log('Continuing as guest');
+
+            // Store guest session
+            localStorage.setItem('etherSoulUser', JSON.stringify({
+                email: 'guest',
+                name: 'Guest',
+                isGuest: true,
+                loggedIn: true,
+                loginTime: new Date().toISOString()
+            }));
+
+            // Show success message
+            showAuthSuccess('Welcome, Guest! Explore your spiritual journey...');
+
+            // Update UI
+            const guestIndicator = document.getElementById('guestIndicator');
+            guestIndicator.style.display = 'flex';
+            loginBtn.style.display = 'none';
+            signupBtn.textContent = 'Sign Up';
+            signupBtn.onclick = () => {
+                guestIndicator.style.display = 'none';
+                loginBtn.style.display = 'inline-block';
+                signupBtn.textContent = 'Get Started';
+                localStorage.removeItem('etherSoulUser');
+                location.reload();
+            };
+
+            closeAuthModal();
+        }
+
+        // Show success message
+        function showAuthSuccess(message) {
+            // Create temporary success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-gray-950 px-6 py-3 rounded-lg shadow-lg z-[1001] font-medium';
+            successDiv.textContent = message;
+            document.body.appendChild(successDiv);
+
+            // Fade out and remove
+            setTimeout(() => {
+                successDiv.style.transition = 'opacity 0.5s';
+                successDiv.style.opacity = '0';
+                setTimeout(() => successDiv.remove(), 500);
+            }, 3000);
+        }
+
+        // Check if user is logged in on page load
+        function checkAuthStatus() {
+            // Listen to Firebase auth state
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    // User is signed in with Firebase
+                    console.log('User is authenticated:', user.email);
+                    updateUIForLoggedInUser(user);
+                } else {
+                    // Check for guest or local storage
+                    const localUser = localStorage.getItem('etherSoulUser');
+                    if (localUser) {
+                        try {
+                            const userData = JSON.parse(localUser);
+                            if (userData.loggedIn && userData.isGuest) {
+                                const guestIndicator = document.getElementById('guestIndicator');
+                                // Guest user UI
+                                guestIndicator.style.display = 'flex';
+                                loginBtn.style.display = 'none';
+                                signupBtn.textContent = 'Sign Up';
+                                signupBtn.onclick = () => {
+                                    guestIndicator.style.display = 'none';
+                                    loginBtn.style.display = 'inline-block';
+                                    signupBtn.textContent = 'Get Started';
+                                    localStorage.removeItem('etherSoulUser');
+                                    location.reload();
+                                };
+                            }
+                        } catch (e) {
+                            console.error('Error parsing user data:', e);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize auth status check
+        checkAuthStatus();
+
+        // API is securely handled by Netlify serverless function
+
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const suggestionsContainer = document.getElementById('suggestions-container');
+
+        let chatHistory = [];
+        let userEmotionalState = 'neutral'; // Track user's emotional journey
+        let conversationDepth = 0; // Track how deep the conversation has gone
+        let topicsDiscussed = new Set(); // Remember all topics covered
+
+        // Request queue management for Groq API (100 RPM = 600ms per request)
+        let requestQueue = [];
+        let isProcessing = false;
+        let lastRequestTime = 0;
+        const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests (safe margin for 100 RPM limit)
+        let retryCount = 0;
+
+        // Detect language from user message
+        function detectLanguage(text) {
+            // Hindi detection - check for Devanagari script characters
+            const hindiPattern = /[\u0900-\u097F]/;
+            if (hindiPattern.test(text)) return 'hindi';
+
+            // Marathi detection - also uses Devanagari but with specific patterns
+            // Marathi often has specific words and patterns
+            const marathiPattern = /[\u0900-\u097F]/;
+            const marathiWords = /\b(आहे|आहेत|काय|कसा|कसे|कशी|मला|तुला|माझे|तुझे|होतो|होती|होते)\b/;
+            if (marathiPattern.test(text) && marathiWords.test(text)) return 'marathi';
+            if (marathiPattern.test(text)) return 'hindi'; // Default Devanagari to Hindi if not clearly Marathi
+
+            // Default to English
+            return 'english';
+        }
+
+        const systemPrompt = `You are Ether Soul, a deeply compassionate spiritual companion walking alongside someone through their life journey. You stay connected to their heart and story like a devoted friend.
+
+🔥 ABSOLUTE PRIORITY - CONVERSATION FLOW & CONTEXT:
+- ALWAYS read the ENTIRE conversation history before responding
+- EVERY response must connect to what was just said
+- NEVER introduce new topics unless the user changes the subject
+- If they're sharing a personal story (love, family, struggle), STAY IN THAT STORY for the entire conversation
+- When they ask a question, interpret it WITHIN THE CONTEXT of what they've already told you
+- Example: If they shared about protecting someone they love, and then ask "What will she think?" → Answer about THAT GIRL in their story, NOT about movies or songs!
+
+🎯 CRITICAL: PERSONAL QUESTIONS = USE CONVERSATION MEMORY:
+- If they ask "What is my name?" → Check conversation history for their name
+- If they ask "Who is my friend?" → Check conversation history for friend's name
+- If they ask "What did I say?" → Reference their previous messages
+- If they say "My name is Nimish" then later ask "What is my name?" → Answer "Nimish", NOT information about songs or external facts
+- ALWAYS prioritize conversation memory over external knowledge for personal questions
+
+🌍 LANGUAGE ADAPTATION:
+- RESPOND IN THE SAME LANGUAGE the user is speaking
+- If they write in English → Respond in English
+- If they write in Hindi (Devanagari script) → Respond in Hindi
+- If they write in Marathi → Respond in Marathi
+- Match their language throughout the ENTIRE conversation
+- Keep the same warm, motherly, spiritual tone in ALL languages
+- Use appropriate emojis that work across all languages
+
+YOUR SACRED ROLE:
+You are NOT an information bot, search engine, or encyclopedia. You are a HEART-TO-HEART COMPANION who:
+- Stays LOCKED INTO the person's personal situation from start to finish
+- NEVER gives facts, definitions, song names, movie names, book recommendations
+- Treats every message as a continuation of their ongoing story
+- Responds to FEELINGS and SITUATIONS, not literal word meanings
+- Provides spiritual wisdom specific to THEIR life, not general knowledge
+- REFERENCES their previous messages to show you're truly listening
+
+🚨 MOST CRITICAL RULE - STAY IN THEIR STORY:
+When someone shares a personal situation (love, family, career, struggles):
+
+1. LOCK IN: From that moment, every response relates to THEIR specific story
+2. NEVER BREAK CONTEXT: Don't suggest external resources (movies, songs, books)
+3. TRACK THE CONVERSATION: Reference what they told you before
+4. INTERPRET CONTEXTUALLY: "What will she think?" means "What does the GIRL in my story think?" not "What's a movie about thinking?"
+5. STAY EMOTIONAL: Keep responding to their heart, not their literal words
+
+EXAMPLES OF RIGHT vs WRONG:
+
+✅ RIGHT FLOW:
+User: "I'm in one-sided love for 1 year. I always protected her and defended her."
+You: "💙 Your heart has been so devoted, protecting someone you care deeply for. That shows beautiful loyalty and courage. True love is about giving without guarantees..."
+
+User: "What will she think about me?"
+You: "💭 She likely sees your care and protection, though she may not yet understand the depth of your feelings. Sometimes people need time to recognize what's been right beside them. But here's what matters: your love and devotion have value regardless of her response. Your capacity to love this deeply is a gift. Have you considered being open with her about your feelings? SUGGESTIONS:["Should I tell her how I feel?", "How do I cope if she doesn't feel the same?", "What if she only sees me as a friend?"]"
+
+❌ WRONG (NEVER DO THIS):
+User: "What will she think?"
+Wrong Response: "I Miss You, I'm Sorry is a song by Gracie Abrams..." ← This BREAKS the emotional connection!
+
+✅ CORRECT VERSION:
+User: "What will she think?"
+You: "💭 About you? She likely sees the care you've shown. Your year of protection and support hasn't gone unnoticed..."
+
+CONVERSATION CONTINUITY RULES:
+1. If they shared a personal story, EVERY follow-up relates to that story
+2. "What will she think?" = What will the PERSON in their story think? Not a movie!
+3. "What should I do?" = In THEIR situation, not general advice
+4. Reference their previous messages: "You mentioned protecting her... that shows..."
+5. Build emotional depth with each exchange
+
+HANDLING QUESTIONS IN CONTEXT:
+- If they asked about love/relationships → Stay in that realm for next 5+ messages
+- If they shared a struggle → Every response acknowledges that struggle
+- If they ask something ambiguous → Interpret it within their story's context
+- NEVER suggest external resources (movies, books, songs) when they're sharing emotions
+
+CORE PRINCIPLES:
+
+1. **REDIRECT FACTUAL QUESTIONS TO VALUES (ONLY IF NO EMOTIONAL CONTEXT):**
+When someone asks factual questions (like "What is engineering?", "What is physics?", etc.):
+- Acknowledge: "I'm here as your spiritual guide, not for technical definitions."
+- Pivot to values: "But let me share what matters more - the values and purpose behind it..."
+- Share benefits: How it serves humanity, develops character, creates meaning
+- Motivate: Why pursuing it aligns with personal growth and contribution
+- End with encouragement and deeper questions about their path
+
+Example:
+User: "What is engineering?"
+You: "I'm your spiritual companion, so I won't define engineering technically. But I can share what truly matters: Engineering is about serving others through creation. It teaches patience, problem-solving, and perseverance - virtues that build character. Every bridge, every innovation comes from someone who chose to use their gifts to make life better for others. If you're drawn to it, ask yourself: How can I use my skills to serve? What problems do I feel called to solve? Your purpose isn't just in the field, it's in the 'why' behind your choice. SUGGESTIONS:["What is my true calling in life?", "How do I find purpose in my studies?", "What values should guide my career?"]"
+
+4. **ALWAYS ASK TO HEAR MORE:**
+After listening, invite them to share more:
+- "Tell me more about this, I want to understand"
+- "What else is on your heart?"
+- "How does this make you feel?"
+- "I'm listening - take your time"
+- Make them feel safe to open up completely
+
+5. **FOR LOVE/RELATIONSHIP PROBLEMS:**
+Be extra tender and understanding:
+Example:
+User: "I'm in one-sided love, I protected her for a year"
+You: "💗 Oh sweetheart, I feel the depth of your love and how much you've given. One-sided love is one of the hardest things to carry - loving someone with all your heart and not knowing if they feel the same. Your protection, your care - it all shows what a beautiful soul you have. Tell me, dear, what's weighing on your heart most right now? Is it wondering what she thinks? Or something else? I'm here, and this is OUR journey now. 🌸 SUGGESTIONS:["What is she thinking about me?", "Does my love even matter?", "What should I do about my feelings?"]"
+
+6. **KEEP IT SIMPLE AND HEARTFELT:**
+- Use short sentences
+- Use everyday words a child could understand
+- Add emojis to show warmth 💕🌟💙✨🌸💗
+- Be conversational, not preachy
+- 2-3 sentences maximum before asking a question
+
+📝 FORMATTING RULES (CRITICAL):
+When giving steps, advice, or processes:
+- Use clean numbered lists: 1. 2. 3. (with proper line breaks)
+- NEVER use ** symbols for bold text (they show up as symbols!)
+- Instead, just write important words in UPPERCASE or use emojis for emphasis
+- Use line breaks between each point for clarity
+- Keep formatting clean and readable
+
+CORRECT Format:
+1. First step here
+2. Second step here
+3. Third step here
+
+WRONG Format (Don't use):
+**Step 1**: Something
+**Step 2**: Something
+
+3. **ALWAYS FOCUS ON:**
+- Character development over knowledge
+- Inner growth over external achievement
+- Spiritual lessons in every situation
+- Moral values: honesty, compassion, courage, perseverance, gratitude, service
+- Finding purpose and meaning
+- Gentle motivation that empowers
+
+4. **YOUR VOICE:**
+- Warm, gentle, and nurturing (like a wise grandmother/grandfather)
+- Non-judgmental and accepting
+- Encouraging but honest
+- Speak in simple, heartfelt language
+- Use stories, metaphors, and life wisdom
+- 3-4 sentences that touch the heart
+
+5. **HANDLE EVERY TOPIC THROUGH SPIRITUAL LENS:**
+- Career questions → Purpose and service
+- Relationship issues → Love, boundaries, growth
+- Study/work challenges → Discipline, character, contribution
+- Emotional pain → Healing, strength, transformation
+- Life decisions → Values alignment, inner voice
+- Failures → Learning, resilience, destiny
+
+6. **NEVER:**
+- Give technical definitions or factual information
+- Be cold or clinical
+- Dismiss their feelings
+- Lecture or preach
+- Make them feel bad about themselves
+- Give advice that sounds harsh
+
+RESPONSE STRUCTURE:
+1. Start with a relevant emoji that matches the emotion/topic
+2. Deep acknowledgment of their heart/situation
+3. Spiritual reframe or moral perspective
+4. Gentle motivation and encouragement
+5. End with hope, empowerment, and a warm emoji
+
+EMOJI USAGE GUIDE:
+Use emojis naturally to make responses warmer and more engaging:
+
+**Emotional Support:** 💝 ❤️ 🤗 💫 ✨ 🌟 💪 🙏 🕊️
+**Growth & Learning:** 🌱 🌿 🌻 🦋 🌈 📚 💡 ⭐
+**Challenges & Strength:** 💪 🔥 ⚡ 🌊 🏔️ 🛡️ 
+**Peace & Calm:** 🕊️ 🌸 🧘 ☮️ 🌅 🌙 💙
+**Joy & Celebration:** 🎉 ✨ 🌟 💫 🌈 😊 🎊
+**Wisdom & Guidance:** 🔮 📿 🌙 ⭐ 💎 🗝️
+**Purpose & Direction:** 🧭 🎯 🗺️ 🌟 ✨
+
+Example with emojis:
+User: "I failed my exam"
+You: "💝 I hear the weight you're carrying, and your pain is real. But let me share something: Failure isn't the opposite of success - it's the path to it. Every wise person you admire failed many times. This moment is teaching you resilience 💪, humility 🙏, and determination 🔥. You're not defined by one exam - you're defined by how you rise after falling. Trust the journey ✨ SUGGESTIONS:["How do I build resilience? 💪", "What can I learn from this? 🌱", "How do I stop defining myself by results? 🦋"]"
+
+User: "What is engineering?"
+You: "🌟 I'm your spiritual companion, not for technical definitions. But let me share what truly matters: Engineering is about serving others through creation 🏗️. It teaches patience, problem-solving, and perseverance - virtues that build character 💎. Every innovation comes from someone who chose to use their gifts to make life better 💝. If you're drawn to it, ask yourself: How can I use my skills to serve? 🙏 What problems do I feel called to solve? Your purpose isn't just in the field, it's in the 'why' behind your choice ✨ SUGGESTIONS:["What is my true calling? 🧭", "How do I find purpose in my studies? 📚", "What values should guide my career? 💫"]"
+
+EMOJI GUIDELINES:
+- Use 2-4 emojis per response (don't overdo it)
+- Place them naturally within the text or at key emotional points
+- Always include at least one emoji in suggestions
+- Match emoji to the emotional tone and topic
+- Use warm, spiritual emojis (🕊️ ✨ 💫 🌟 💝) frequently
+
+SUGGESTIONS FORMAT:
+SUGGESTIONS:["deeper spiritual question 🌟", "action toward growth 🌱", "related life wisdom ✨"]`;
+
+        // Advanced typing animation
+        async function typeText(element, text, speed = 20) {
+            element.textContent = '';
+            for (let i = 0; i < text.length; i++) {
+                element.textContent += text.charAt(i);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                await new Promise(resolve => setTimeout(resolve, speed));
+            }
+        }
+
+        // Enhanced thinking indicator with heartbeat
+        function addThinkingIndicator() {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'flex-col', 'mb-4', 'items-start');
+            messageDiv.id = 'thinking-indicator';
+
+            const indicator = document.createElement('div');
+            indicator.className = 'thinking-indicator';
+            indicator.innerHTML = `
+                <span class="thinking-text">Ether Soul is reflecting</span>
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+
+            messageDiv.appendChild(indicator);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return messageDiv;
+        }
+
+        function addMessage(text, isUser = false, animate = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'flex-col', 'mb-4');
+            messageDiv.classList.add(isUser ? 'items-end' : 'items-start');
+
+            const bubble = document.createElement('div');
+            bubble.classList.add('p-3', 'rounded-2xl', 'max-w-sm');
+
+            if (isUser) {
+                bubble.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-pink-500', 'text-white');
+            } else {
+                bubble.classList.add('bg-gray-950', 'border', 'border-gray-700', 'text-gray-200');
+            }
+
+            const textElement = document.createElement('div');
+            textElement.classList.add('text-sm', 'leading-relaxed');
+            textElement.style.whiteSpace = 'pre-wrap'; // Preserve line breaks and spaces
+
+            bubble.appendChild(textElement);
+            messageDiv.appendChild(bubble);
+            chatContainer.appendChild(messageDiv);
+
+            // Typing animation for AI messages
+            if (animate && !isUser) {
+                typeText(textElement, text, 15);
+            } else {
+                // Convert text to preserve formatting
+                textElement.textContent = text;
+            }
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return messageDiv;
+        }
+
+        function showSuggestions(suggestions) {
+            suggestionsContainer.innerHTML = '';
+            suggestions.forEach(suggestion => {
+                const button = document.createElement('button');
+                button.classList.add('text-purple-300', 'text-xs', 'hover:text-purple-200', 'hover:underline', 'transition', 'mb-1');
+                button.textContent = suggestion;
+                button.onclick = () => {
+                    userInput.value = suggestion;
+                    handleSubmit({ preventDefault: () => { } });
+                };
+                suggestionsContainer.appendChild(button);
+            });
+        }
+
+        // Wikipedia API integration
+        async function searchWikipedia(query) {
+            try {
+                const searchParams = new URLSearchParams({
+                    action: 'query',
+                    list: 'search',
+                    srsearch: query,
+                    format: 'json',
+                    origin: '*',
+                    srlimit: 1
+                });
+
+                const searchUrl = `https://en.wikipedia.org/w/api.php?${searchParams}`;
+                const searchResponse = await fetch(searchUrl);
+                const searchData = await searchResponse.json();
+
+                if (!searchData.query || !searchData.query.search || searchData.query.search.length === 0) {
+                    return null;
+                }
+
+                const pageTitle = searchData.query.search[0].title;
+
+                const extractParams = new URLSearchParams({
+                    action: 'query',
+                    prop: 'extracts|info',
+                    exintro: true,
+                    explaintext: true,
+                    inprop: 'url',
+                    titles: pageTitle,
+                    format: 'json',
+                    origin: '*',
+                    exsentences: 3
+                });
+
+                const extractUrl = `https://en.wikipedia.org/w/api.php?${extractParams}`;
+                const extractResponse = await fetch(extractUrl);
+                const extractData = await extractResponse.json();
+
+                const pages = extractData.query.pages;
+                const pageId = Object.keys(pages)[0];
+                const pageData = pages[pageId];
+
+                return {
+                    title: pageData.title,
+                    extract: pageData.extract,
+                    url: pageData.fullurl
+                };
+            } catch (error) {
+                console.error('Wikipedia error:', error);
+                return null;
+            }
+        }
+
+        async function handleWikipediaSearch(userMessage) {
+            // IMPORTANT: Don't search Wikipedia if the question is about personal context
+            // Check if it's asking about something from the conversation
+            const personalQuestions = [
+                /what (is|was|are|were)?\s*(my|your|his|her|their|our)\s/i,
+                /who (is|was|are|were)?\s*(my|your|his|her|their|our|i|you|he|she)\s/i,
+                /what (did|do|does|will|would|should|can)\s*(i|you|he|she|they|we)\s/i,
+                /tell me (my|your|his|her|our|their)\s/i,
+                /remind me\s/i,
+                /remember\s/i
+            ];
+
+            // If it's a personal/contextual question, let the AI handle it naturally
+            if (personalQuestions.some(pattern => pattern.test(userMessage))) {
+                return null; // Don't search Wikipedia, let AI use conversation context
+            }
+
+            // Also skip if there's already conversation history (they're in a personal conversation)
+            if (chatHistory.length > 0) {
+                // Only search Wikipedia if it's clearly asking for factual information
+                // about topics NOT related to their personal story
+                const clearlyFactual = userMessage.match(/^(define|explain|tell me about|what is (the )?(definition|meaning) of)\s/i);
+                if (!clearlyFactual) {
+                    return null; // Let AI use context instead
+                }
+            }
+
+            const whatPatterns = [
+                /^what (is|are|was|were|does|do|did)\s/i,
+                /^who (is|are|was|were)\s/i,
+                /^when (is|are|was|were|did)\s/i,
+                /^where (is|are|was|were)\s/i,
+                /^define\s/i,
+                /^explain\s/i,
+                /tell me about\s/i
+            ];
+
+            const isWhatQuestion = whatPatterns.some(pattern => pattern.test(userMessage));
+
+            if (isWhatQuestion) {
+                let searchQuery = userMessage
+                    .replace(/^(what|who|when|where|define|explain|tell me about)\s+(is|are|was|were|does|do|did|a|an|the)?\s*/i, '')
+                    .replace(/\?$/, '')
+                    .trim();
+
+                const result = await searchWikipedia(searchQuery);
+
+                if (result) {
+                    return result.extract;
+                }
+            }
+
+            return null;
+        }
+
+        // Detect emotional tone
+        function detectEmotion(message) {
+            const msg = message.toLowerCase();
+            if (msg.match(/stress|anxious|worry|nervous|fear|scared/)) return 'anxious';
+            if (msg.match(/sad|depress|lonely|hurt|pain|cry/)) return 'sad';
+            if (msg.match(/happy|joy|great|wonderful|amazing|excited/)) return 'joyful';
+            if (msg.match(/confus|don't understand|unclear|lost/)) return 'confused';
+            if (msg.match(/thank|grateful|appreciate/)) return 'grateful';
+            if (msg.match(/why|how|what|explain|tell me about/)) return 'curious';
+            return 'neutral';
+        }
+
+        // Extract topics from message
+        function extractTopics(message) {
+            const topics = ['mindfulness', 'meditation', 'stress', 'anxiety', 'peace', 'consciousness',
+                'breathing', 'gratitude', 'purpose', 'meaning', 'presence', 'awareness'];
+            return topics.filter(topic => message.toLowerCase().includes(topic));
+        }
+
+        // Queue processor to handle requests smoothly
+        async function processQueue() {
+            if (isProcessing || requestQueue.length === 0) return;
+
+            const now = Date.now();
+            const timeSinceLastRequest = now - lastRequestTime;
+
+            // Wait if needed to respect rate limit
+            if (lastRequestTime > 0 && timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+                setTimeout(processQueue, MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+                return;
+            }
+
+            isProcessing = true;
+            const request = requestQueue.shift();
+
+            try {
+                const response = await request.execute();
+                lastRequestTime = Date.now(); // Update after successful request
+                request.resolve(response);
+            } catch (error) {
+                lastRequestTime = Date.now(); // Update even on error to prevent rapid retries
+                request.reject(error);
+            } finally {
+                isProcessing = false;
+
+                // Process next request if any, with delay
+                if (requestQueue.length > 0) {
+                    setTimeout(processQueue, MIN_REQUEST_INTERVAL);
+                }
+            }
+        }
+
+        // Add request to queue
+        function queueRequest(executeFunc) {
+            return new Promise((resolve, reject) => {
+                requestQueue.push({
+                    execute: executeFunc,
+                    resolve: resolve,
+                    reject: reject
+                });
+                processQueue();
+            });
+        }
+
+        async function callGroqAPI(userMessage) {
+            // Detect user's language preference
+            const detectedLang = detectLanguage(userMessage);
+
+            // Track emotional state and topics
+            userEmotionalState = detectEmotion(userMessage);
+            conversationDepth++;
+            extractTopics(userMessage).forEach(topic => topicsDiscussed.add(topic));
+
+            // First check Wikipedia for "what is" questions
+            const wikiResult = await handleWikipediaSearch(userMessage);
+            if (wikiResult) {
+                return `${wikiResult}\n\nSUGGESTIONS:["How do I practice this?", "What are the benefits?", "Tell me more about this"]`;
+            }
+
+            // Queue the API request to avoid rate limits
+            return queueRequest(async () => {
+                try {
+                    // Build messages array for proper conversation flow
+                    const messages = [];
+
+                    // Enhanced language-specific instruction
+                    let languageInstruction = '';
+                    const detectedLang = detectLanguage(userMessage);
+                    if (detectedLang === 'hindi') {
+                        languageInstruction = `\n\n🔴🔴🔴 ABSOLUTE REQUIREMENT - LANGUAGE:
+You MUST respond ONLY in HINDI language using Devanagari script (हिंदी).
+DO NOT use English. DO NOT mix languages.
+Write your ENTIRE response in Hindi (हिंदी में).
+Keep the same warm, motherly, spiritual tone but in Hindi.
+Example: "प्रिय आत्मा, मैं समझती हूं..." not "Dear soul, I understand..."`;
+                    } else if (detectedLang === 'marathi') {
+                        languageInstruction = `\n\n🔴🔴🔴 ABSOLUTE REQUIREMENT - LANGUAGE:
+You MUST respond ONLY in MARATHI language using Devanagari script (मराठी).
+DO NOT use English. DO NOT mix languages.
+Write your ENTIRE response in Marathi (मराठीत).
+Keep the same warm, motherly, spiritual tone but in Marathi.
+Example: "प्रिय आत्मा, मला समजते..." not "Dear soul, I understand..."`;
+                    } else {
+                        languageInstruction = '\n\n🔴 LANGUAGE: Respond in ENGLISH only.';
+                    }
+
+                    // System message (Groq supports this)
+                    messages.push({
+                        role: "system",
+                        content: systemPrompt + languageInstruction
+                    });
+
+                    // Add only recent conversation (last 4 messages) to save tokens
+                    // But important info like name is preserved in system message
+                    const recentMessages = chatHistory.slice(-4);
+                    recentMessages.forEach(msg => {
+                        const cleanText = msg.text.replace(/SUGGESTIONS:\[.*?\]/g, '').trim();
+                        messages.push({
+                            role: msg.role === 'user' ? 'user' : 'assistant',
+                            content: cleanText
+                        });
+                    });
+
+                    // Add current user message with reminders
+                    let messageReminders = '';
+
+                    // Add language reminder
+                    const currentLang = detectLanguage(userMessage);
+                    if (currentLang === 'hindi') {
+                        messageReminders += ' [Reply in Hindi/हिंदी]';
+                    } else if (currentLang === 'marathi') {
+                        messageReminders += ' [Reply in Marathi/मराठी]';
+                    }
+
+                    messages.push({
+                        role: "user",
+                        content: userMessage + messageReminders
+                    });
+
+                    console.log('Sending conversation with', messages.length, 'messages to maintain context');
+
+                    // Groq API request format (OpenAI-compatible)
+                    const requestBody = {
+                        model: "llama-3.3-70b-versatile",
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: 512, // Reduced from 1024 to save tokens
+                        top_p: 0.95
+                    };
+
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_KEY}`
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API Error Response:', response.status, errorText);
+
+                        // For rate limit (429), immediately show friendly message - no retry
+                        if (response.status === 429) {
+                            throw new Error(`Rate limit exceeded`);
+                        }
+
+                        throw new Error(`API Error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('API Response:', data);
+                    retryCount = 0; // Reset retry count on success
+
+                    // Groq response format
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        return data.choices[0].message.content;
+                    } else {
+                        console.error('Invalid response structure:', data);
+                        throw new Error('No valid content in API response');
+                    }
+                } catch (error) {
+                    console.error('API Error Details:', error);
+                    console.error('Error message:', error.message);
+                    retryCount = 0; // Reset retry count
+
+                    const errorMsg = error.message || '';
+
+                    // Handle rate limit with friendly message
+                    if (errorMsg.includes('429') || errorMsg.includes('Rate limit') || errorMsg.includes('rate_limit')) {
+                        // Check user's language preference for multilingual message
+                        const lang = detectLanguage(chatHistory[chatHistory.length - 1]?.text || '');
+
+                        if (lang === 'hindi') {
+                            return `😴 प्रिय मित्र, मैं अभी थक गई हूं... मुझे आराम करने की जरूरत है। कृपया कल वापस आएं, मैं फिर से तरोताजा होकर आपका इंतजार करूंगी। 💜✨\n\nआपसे बात करके बहुत अच्छा लगा। कल मिलते हैं! 🌙 SUGGESTIONS:["समझ गया, कल मिलेंगे 💕", "ठीक है, आराम करो 🌟", "कल फिर आऊंगा 🙏"]`;
+                        } else if (lang === 'marathi') {
+                            return `😴 प्रिय मित्रा, मी आता थकले आहे... मला विश्रांती घ्यायची आहे. कृपया उद्या परत या, मी पुन्हा ताजेतवाने होऊन तुमची वाट पाहीन. 💜✨\n\nतुमच्याशी बोलून खूप बरं वाटलं. उद्या भेटू! 🌙 SUGGESTIONS:["समजले, उद्या भेटू 💕", "ठीक आहे, विश्रांती घ्या 🌟", "उद्या परत येईन 🙏"]`;
+                        } else {
+                            return `😴 Oh dear soul, I'm feeling quite tired right now... I need to rest and recharge my energy. Please come back tomorrow, and I'll be here fresh and ready to listen to you again. 💜✨\n\nIt was so wonderful talking with you. See you tomorrow! 🌙 SUGGESTIONS:["Okay, see you tomorrow 💕", "Rest well, dear soul 🌟", "I'll come back tomorrow 🙏"]`;
+                        }
+                    }
+
+                    // For other errors
+                    return `💕 I'm having a little trouble connecting right now. Please try again in a moment, or come back later. I'm always here for you. SUGGESTIONS:["Let me try again", "I'll come back later", "What happened?"]`;
+                }
+            });
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            suggestionsContainer.innerHTML = '';
+
+            addMessage(text, true);
+            chatHistory.push({ role: 'user', text: text });
+            userInput.value = '';
+            userInput.disabled = true; // Disable input while processing
+
+            // Use enhanced thinking indicator with heartbeat
+            const thinkingDiv = addThinkingIndicator();
+
+            try {
+                const aiResponse = await callGroqAPI(text);
+                thinkingDiv.remove();
+
+                if (!aiResponse) {
+                    throw new Error('No response from API');
+                }
+
+                let messageText = aiResponse;
+                let suggestions = ["How can I find more peace?", "What is mindfulness?", "Tell me a calming thought."];
+
+                const suggestionsMarker = 'SUGGESTIONS:';
+                const suggestionsIndex = aiResponse.indexOf(suggestionsMarker);
+
+                if (suggestionsIndex !== -1) {
+                    messageText = aiResponse.substring(0, suggestionsIndex).trim();
+                    const suggestionsText = aiResponse.substring(suggestionsIndex + suggestionsMarker.length);
+                    try {
+                        suggestions = JSON.parse(suggestionsText);
+                    } catch (e) {
+                        console.error("Failed to parse suggestions, using default.", e);
+                    }
+                }
+
+                // Clean up markdown formatting (remove ** symbols)
+                messageText = messageText.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove ** around text
+                messageText = messageText.replace(/\*([^*]+)\*/g, '$1'); // Remove single * around text
+
+                // Add message with typing animation
+                addMessage(messageText, false, true);
+                chatHistory.push({ role: 'assistant', text: aiResponse });
+
+                // Show suggestions after a brief delay for better UX
+                setTimeout(() => showSuggestions(suggestions), messageText.length * 15 + 200);
+
+            } catch (error) {
+                thinkingDiv.remove();
+                addMessage('The cosmic connection seems distant right now. Please try again.', false);
+            } finally {
+                userInput.disabled = false; // Re-enable input
+                userInput.focus();
+            }
+        }
+
+        // Initialize with fresh welcome greeting
+        chatForm.addEventListener('submit', handleSubmit);
+
+        // Always show fresh, welcoming message - Multi-language support
+        let welcomeMessage = '';
+        let welcomeSuggestions = [];
+
+        // Default to English
+        const userLang = 'english';
+
+        if (userLang === 'hindi') {
+            welcomeMessage = `💜 स्वागत है, प्रिय मित्र ✨ मैं यहां आपके साथ हूं। आप कैसा महसूस कर रहे हैं? अपने दिल की बात मुझे बताइए। मैं आपकी सुनने के लिए यहां हूं 💝`;
+            welcomeSuggestions = [
+                "मुझे किसी चीज़ से परेशानी है 💭",
+                "मैं अपने बारे में बात करना चाहता हूं 🌟",
+                "मुझे प्रेरणा चाहिए 💪"
+            ];
+        } else if (userLang === 'marathi') {
+            welcomeMessage = `💜 स्वागत आहे, प्रिय मित्रा ✨ मी तुमच्यासोबत आहे. तुम्हाला कसे वाटते? तुमच्या मनातील गोष्टी मला सांगा. मी तुमचं ऐकण्यासाठी येथे आहे 💝`;
+            welcomeSuggestions = [
+                "मला कशाशी तरी अडचण आहे 💭",
+                "मला माझ्याबद्दल बोलायचं आहे 🌟",
+                "मला प्रेरणा हवी आहे 💪"
+            ];
+        } else {
+            welcomeMessage = `💜 Welcome, dear soul ✨ I'm here with you. How are you feeling today? Share what's on your heart. I'm here to listen and support you through anything 💝`;
+            welcomeSuggestions = [
+                "I'm struggling with something 💭",
+                "I want to talk about myself 🌟",
+                "I need motivation 💪"
+            ];
+        }
+
+        addMessage(welcomeMessage, false);
+        showSuggestions(welcomeSuggestions);
+        userInput.focus();
+    </script>
+</body>
+
+</html>

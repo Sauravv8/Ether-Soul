@@ -1,0 +1,21 @@
+{
+  "name": "ether-soul",
+  "version": "1.0.0",
+  "description": "Ether Soul AI Companion - Secure serverless chat with Gemini API",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
+  "keywords": [
+    "ai",
+    "chat",
+    "gemini",
+    "netlify",
+    "serverless"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

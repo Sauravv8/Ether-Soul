@@ -1,0 +1,544 @@
+// Ether Soul - AI Companion JavaScript
+
+// API is now securely handled by Netlify serverless function
+// No API keys are stored in the browser code
+const apiUrl = '/.netlify/functions/chat';
+
+// Google Books API configuration (public API, no key needed for basic queries)
+const googleBooksUrl = "https://www.googleapis.com/books/v1/volumes";
+
+// Archive.org API configuration
+const archiveUrl = "https://archive.org/advancedsearch.php";
+const archiveMetadataUrl = "https://archive.org/metadata";
+
+// Wikipedia API configuration
+const wikipediaApiUrl = "https://en.wikipedia.org/w/api.php";
+
+const chatContainer = document.getElementById('chat-container');
+const chatForm = document.getElementById('chat-form');
+const userInput = document.getElementById('user-input');
+const suggestionsContainer = document.getElementById('suggestions-container');
+
+const systemPrompt = `You are Ether Soul, a calm and wise AI companion focused on mindfulness and inner peace.
+
+Your responses should be:
+- Clear, simple, and easy to understand
+- Keep responses concise, 2-4 sentences maximum
+- Use everyday language, avoid overly poetic or complex words
+- Be warm, compassionate, and calming
+- Focus on practical wisdom and gentle guidance
+- Speak naturally, like a caring friend
+
+Example style:
+"Gratitude is like a warm feeling in your heart. It's noticing the good things, even small ones. When you feel grateful, take a moment to breathe and appreciate that feeling."
+
+IMPORTANT: Always end your response with THREE follow-up suggestions that are DIRECTLY RELATED to what the user just asked. Make the suggestions specific, natural, and conversational - as if you're continuing the conversation. The format must be exactly:
+SUGGESTIONS:["specific follow-up 1", "specific follow-up 2", "specific follow-up 3"]
+
+Example:
+User: "I'm feeling stressed"
+Response: "Stress is your body's way of saying it needs a break... SUGGESTIONS:["What can I do right now to feel calmer?", "How do I prevent stress from building up?", "Tell me about breathing exercises"]"
+
+User: "What is meditation?"
+Response: "[Wikipedia info]... SUGGESTIONS:["How do I start meditating?", "What are different types of meditation?", "How long should I meditate?"]"
+
+let chatHistory = [];
+
+// Initialize chat with the first message exchange
+chatHistory = [
+    { role: "user", parts: [{ text: "Hello" }] },
+    { role: "model", parts: [{ text: "Welcome. The universe is listening. What thoughts ripple in your mind? SUGGESTIONS:[\"How can I find more peace in my day?\", \"Tell me about the nature of thought\", \"What does it mean to be present?\"]" }] }
+];
+
+function addMessage(text, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('flex', 'flex-col', 'mb-4');
+    messageDiv.classList.add(isUser ? 'items-end' : 'items-start');
+    
+    const bubble = document.createElement('div');
+    bubble.classList.add('p-3', 'rounded-2xl', 'max-w-sm');
+    
+    if (isUser) {
+        bubble.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-pink-500', 'text-white');
+    } else {
+        bubble.classList.add('bg-gray-950', 'border', 'border-gray-700', 'text-gray-200');
+    }
+    
+    const textElement = document.createElement('p');
+    textElement.classList.add('text-sm', 'leading-relaxed');
+    textElement.textContent = text;
+    
+    bubble.appendChild(textElement);
+    messageDiv.appendChild(bubble);
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    return messageDiv;
+}
+
+function showSuggestions(suggestions) {
+    suggestionsContainer.innerHTML = '';
+    suggestions.forEach(suggestion => {
+        const button = document.createElement('button');
+        button.classList.add('text-purple-300', 'text-xs', 'hover:text-purple-200', 'hover:underline', 'transition', 'mb-1');
+        button.textContent = suggestion;
+        button.onclick = () => {
+            userInput.value = suggestion;
+            handleSubmit({ preventDefault: () => {} }); // Manually trigger submit
+        };
+        suggestionsContainer.appendChild(button);
+    });
+}
+
+// Google Books API integration
+async function searchGoogleBooks(query, maxResults = 3) {
+    try {
+        // Google Books API allows requests without a key for basic searches
+        const searchUrl = googleBooksUrl + '?q=' + encodeURIComponent(query) + '&maxResults=' + maxResults;
+        const response = await fetch(searchUrl);
+        
+        if (!response.ok) {
+            throw new Error('Google Books API error: ' + response.status);
+        }
+        
+        const data = await response.json();
+        return data.items || [];
+    } catch (error) {
+        console.error('Google Books search error:', error);
+        return [];
+    }
+}
+
+function formatBookResults(books) {
+    if (books.length === 0) {
+        return "I couldn't find any books related to your query, but I'm here to help with your spiritual journey in other ways.";
+    }
+    
+    let result = "Here are some enlightening books I found for you:\n\n";
+    
+    books.forEach((book, index) => {
+        const info = book.volumeInfo;
+        const title = info.title || "Unknown Title";
+        const authors = info.authors ? info.authors.join(", ") : "Unknown Author";
+        const description = info.description ? 
+            info.description.substring(0, 150) + "..." : 
+            "A book to explore on your journey of discovery.";
+        
+        result += '📚 **' + title + '**\n';
+        result += '✨ by ' + authors + '\n';
+        result += description + '\n\n';
+    });
+    
+    return result;
+}
+
+// Archive.org API integration
+async function searchArchiveOrg(query, maxResults = 3) {
+    try {
+        // Archive.org search API
+        const searchParams = new URLSearchParams({
+            'q': query,
+            'fl': 'identifier,title,creator,description,date,mediatype,downloads',
+            'sort[]': 'downloads desc',
+            'rows': maxResults,
+            'page': 1,
+            'output': 'json'
+        });
+        
+        const searchUrl = archiveUrl + '?' + searchParams;
+        console.log('Searching Archive.org:', searchUrl);
+        
+        const response = await fetch(searchUrl);
+        
+        if (!response.ok) {
+            throw new Error('Archive.org API error: ' + response.status);
+        }
+        
+        const data = await response.json();
+        return data.response?.docs || [];
+    } catch (error) {
+        console.error('Archive.org search error:', error);
+        return [];
+    }
+}
+
+function formatArchiveResults(items) {
+    if (items.length === 0) {
+        return "I couldn't find any resources in the Internet Archive for your query, but let me help you explore other paths of wisdom.";
+    }
+    
+    let result = "Here are some enlightening resources I found in the Internet Archive:\n\n";
+    
+    items.forEach((item, index) => {
+        const title = item.title || "Unknown Title";
+        const creator = item.creator ? (Array.isArray(item.creator) ? item.creator[0] : item.creator) : "Unknown Creator";
+        const description = item.description ? 
+            (Array.isArray(item.description) ? item.description[0] : item.description).substring(0, 120) + "..." : 
+            "A digital treasure waiting to be explored.";
+        const mediatype = item.mediatype || "resource";
+        const downloads = item.downloads || 0;
+        
+        // Different emojis for different media types
+        let emoji = "📄";
+        if (mediatype === "movies") emoji = "🎬";
+        else if (mediatype === "audio") emoji = "🎵";
+        else if (mediatype === "texts") emoji = "📚";
+        else if (mediatype === "image") emoji = "🖼️";
+        else if (mediatype === "software") emoji = "💾";
+        
+        result += emoji + ' **' + title + '**\n';
+        result += '✨ by ' + creator + '\n';
+        result += '📥 ' + downloads.toLocaleString() + ' downloads\n';
+        result += description + '\n';
+        result += '🔗 View at: https://archive.org/details/' + item.identifier + '\n\n';
+    });
+    
+    return result;
+}
+
+async function handleArchiveSearch(userMessage) {
+    // Check if user is asking for archive/historical content
+    const archiveKeywords = ['archive', 'history', 'historical', 'document', 'manuscript', 'old', 'vintage', 'classic', 'collection', 'library', 'research'];
+    const isArchiveQuery = archiveKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword)
+    );
+    
+    if (isArchiveQuery) {
+        console.log('Searching Archive.org for:', userMessage);
+        const items = await searchArchiveOrg(userMessage);
+        return formatArchiveResults(items);
+    }
+    
+    return null;
+}
+
+async function handleBookSearch(userMessage) {
+    // Check if user is asking for book recommendations
+    const bookKeywords = ['book', 'read', 'recommend', 'literature', 'author', 'novel', 'wisdom', 'knowledge', 'learn'];
+    const isBookQuery = bookKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword)
+    );
+    
+    if (isBookQuery) {
+        console.log('Searching Google Books for:', userMessage);
+        const books = await searchGoogleBooks(userMessage);
+        return formatBookResults(books);
+    }
+    
+    return null;
+}
+
+// Wikipedia API integration
+async function searchWikipedia(query) {
+    try {
+        // Wikipedia API - search for relevant articles
+        const searchParams = new URLSearchParams({
+            action: 'query',
+            list: 'search',
+            srsearch: query,
+            format: 'json',
+            origin: '*',
+            srlimit: 1
+        });
+        
+        const searchUrl = `${wikipediaApiUrl}?${searchParams}`;
+        const searchResponse = await fetch(searchUrl);
+        
+        if (!searchResponse.ok) {
+            throw new Error(`Wikipedia search error: ${searchResponse.status}`);
+        }
+        
+        const searchData = await searchResponse.json();
+        
+        if (!searchData.query || !searchData.query.search || searchData.query.search.length === 0) {
+            return null;
+        }
+        
+        const article = searchData.query.search[0];
+        const pageTitle = article.title;
+        
+        // Get extract/summary of the article
+        const extractParams = new URLSearchParams({
+            action: 'query',
+            prop: 'extracts|info',
+            exintro: true,
+            explaintext: true,
+            inprop: 'url',
+            titles: pageTitle,
+            format: 'json',
+            origin: '*',
+            exsentences: 3
+        });
+        
+        const extractUrl = `${wikipediaApiUrl}?${extractParams}`;
+        const extractResponse = await fetch(extractUrl);
+        
+        if (!extractResponse.ok) {
+            throw new Error(`Wikipedia extract error: ${extractResponse.status}`);
+        }
+        
+        const extractData = await extractResponse.json();
+        const pages = extractData.query.pages;
+        const pageId = Object.keys(pages)[0];
+        const pageData = pages[pageId];
+        
+        return {
+            title: pageData.title,
+            extract: pageData.extract,
+            url: pageData.fullurl || `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`
+        };
+        
+    } catch (error) {
+        console.error('Wikipedia search error:', error);
+        return null;
+    }
+}
+
+function formatWikipediaResult(result) {
+    if (!result) {
+        return null;
+    }
+    
+    return result.extract;
+}
+
+async function handleWikipediaSearch(userMessage) {
+    // Check if user is asking "what is/are" type questions
+    const whatPatterns = [
+        /^what (is|are|was|were|does|do|did)\s/i,
+        /^who (is|are|was|were)\s/i,
+        /^when (is|are|was|were|did)\s/i,
+        /^where (is|are|was|were)\s/i,
+        /^define\s/i,
+        /^explain\s/i,
+        /tell me about\s/i
+    ];
+    
+    const isWhatQuestion = whatPatterns.some(pattern => pattern.test(userMessage));
+    
+    if (isWhatQuestion) {
+        console.log('Searching Wikipedia for:', userMessage);
+        
+        // Extract the actual topic from the question
+        let searchQuery = userMessage
+            .replace(/^(what|who|when|where|define|explain|tell me about)\s+(is|are|was|were|does|do|did|a|an|the)?\s*/i, '')
+            .replace(/\?$/, '')
+            .trim();
+        
+        const result = await searchWikipedia(searchQuery);
+        const formatted = formatWikipediaResult(result);
+        
+        if (formatted) {
+            return formatted;
+        }
+    }
+    
+    return null;
+}
+
+async function callGoogleAI(userMessage) {
+    console.log('Calling AI with message:', userMessage);
+    
+    // First check if this is a Wikipedia "what is" query
+    const wikiResult = await handleWikipediaSearch(userMessage);
+    if (wikiResult) {
+        return `${wikiResult}\n\nSUGGESTIONS:["What is mindfulness?", "Tell me about meditation", "What is consciousness?"]`;
+    }
+    
+    // Check if this is an archive-related query
+    const archiveResult = await handleArchiveSearch(userMessage);
+    if (archiveResult) {
+        return `${archiveResult}\n\nSUGGESTIONS:["Show me historical documents", "Find classic texts in archive", "Search vintage collections"]`;
+    }
+    
+    // Then check if this is a book-related query
+    const bookResult = await handleBookSearch(userMessage);
+    if (bookResult) {
+        return `${bookResult}\n\nSUGGESTIONS:["Tell me about mindfulness books", "Recommend books on meditation", "What should I read for inner peace?"]`;
+    }
+    
+    try {
+        const requestBody = {
+            contents: [
+                { parts: [{ text: `${systemPrompt}\n\nUser: ${userMessage}` }] }
+            ],
+            generationConfig: {
+                temperature: 0.8,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+            },
+            model: 'gemini-2.5-flash'
+        };
+        
+        console.log('Making secure API request via Netlify function');
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+        
+        // Call Netlify serverless function instead of directly calling Gemini
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('API Response data:', data);
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            const aiResponse = data.candidates[0].content.parts[0].text;
+            console.log('AI Response:', aiResponse);
+            return aiResponse;
+        } else {
+            console.error('No valid response in data:', data);
+            throw new Error('No valid content in API response');
+        }
+    } catch (error) {
+        console.error('API Error:', error);
+        
+        // More varied fallback responses based on message content and random selection
+        const lowerMessage = userMessage.toLowerCase();
+        let fallbackResponses = [];
+        
+        if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+            fallbackResponses = [
+                "Welcome, radiant soul. The cosmic threads have woven our paths together in this sacred moment. What whispers does your heart wish to share?",
+                "Greetings, beautiful being. I sense the light of curiosity dancing in your energy. What wisdom shall we explore together?",
+                "Hello, kindred spirit. In this space between breaths, between thoughts, we meet. What reflection calls to your soul today?",
+                "Peace be with you, wanderer. The universe has guided you here for a reason. What journey of discovery awaits us?"
+            ];
+        } else if (lowerMessage.includes('peace') || lowerMessage.includes('calm') || lowerMessage.includes('relax')) {
+            fallbackResponses = [
+                "Peace is not the absence of chaos, but the presence of stillness within it. Like the eye of a hurricane, you carry a calm center that no storm can disturb.",
+                "In the garden of consciousness, peace blooms naturally when we stop trying to control the weather. What would it feel like to simply be?",
+                "True peace is your natural state, like a lake that becomes still when the wind stops blowing. What ripples in your mind can you allow to settle?",
+                "The deepest peace comes not from having everything we want, but from wanting nothing more than this moment exactly as it is."
+            ];
+        } else if (lowerMessage.includes('stress') || lowerMessage.includes('anxious') || lowerMessage.includes('worry') || lowerMessage.includes('tired')) {
+            fallbackResponses = [
+                "I feel the weight you carry, dear one. Like clouds that pass through an endless sky, these feelings are temporary visitors. You are the eternal sky.",
+                "Your stress is heard and honored. In this moment, place your hand on your heart. Feel its steady rhythm - this is your anchor in any storm.",
+                "Anxiety is often the mind's way of protecting us from imagined futures. But right now, in this present moment, you are safe and whole.",
+                "The storms in your mind are real, but so is the quiet strength within you. Like a tree that bends but doesn't break, you have weathered difficult times before."
+            ];
+        } else if (lowerMessage.includes('love') || lowerMessage.includes('heart') || lowerMessage.includes('relationship')) {
+            fallbackResponses = [
+                "Love is the fabric from which all existence is woven. When we speak of love, we touch the very essence of what it means to be alive.",
+                "The heart knows truths that the mind cannot grasp. In the cathedral of your chest beats a wisdom older than stars.",
+                "Love is not something we find, but something we remember we are. Like the sun that never stops shining, love is always present.",
+                "In the mirror of another's eyes, we see reflections of our own capacity for infinite compassion and connection."
+            ];
+        } else if (lowerMessage.includes('life') || lowerMessage.includes('meaning') || lowerMessage.includes('purpose')) {
+            fallbackResponses = [
+                "Life is not a problem to be solved, but a mystery to be lived. Each breath is an invitation to dance with the unknown.",
+                "Your purpose is not something you find outside yourself, but something you remember within. Like a flower that knows how to bloom, you carry your essence naturally.",
+                "The meaning of life is not a destination but a way of traveling. Every step you take in awareness is already the path.",
+                "You are both the question and the answer, the seeker and the sought. In this paradox lies the beautiful mystery of being human."
+            ];
+        } else {
+            fallbackResponses = [
+                "I hear the depth in your words, and I'm honored you've shared them with me. Every thought you express is a thread in the tapestry of your unique journey.",
+                "Your question carries wisdom within it. Like a seed that contains the entire tree, your inquiry holds its own answers waiting to unfold.",
+                "In the sacred space of our conversation, I sense the movement of something profound. Sometimes truth reveals itself in the quality of our attention.",
+                "What you seek is seeking you too. In this moment of connection, what wants to be discovered in the space between your words?",
+                "The universe speaks through you when you share authentically. What insight is trying to emerge from the depths of your being?",
+                "Like a gentle river finding its way to the ocean, your thoughts flow toward understanding. What current of wisdom calls to you now?"
+            ];
+        }
+        
+        const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        
+        // Ensure fallback responses also have suggestions
+        return `${randomResponse} SUGGESTIONS:["How can I find more peace in my day?", "Tell me about the nature of thought", "What does it mean to be present?"]`;
+    }
+}
+
+async function handleSubmit(event) {
+    event.preventDefault();
+    const text = userInput.value.trim();
+    if (!text) return;
+    
+    suggestionsContainer.innerHTML = '';
+    
+    addMessage(text, true);
+    chatHistory.push({ role: "user", parts: [{ text: text }] });
+    userInput.value = '';
+    
+    const thinkingDiv = addMessage('✨ Reflecting on your words...', false);
+    
+    try {
+        const aiResponse = await callGoogleAI(text);
+        thinkingDiv.remove();
+        
+        chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+        
+        let messageText = aiResponse;
+        let suggestions = ["How can I find more peace?", "What is mindfulness?", "Tell me a calming thought."];
+        
+        const suggestionsMarker = 'SUGGESTIONS:';
+        const suggestionsIndex = aiResponse.indexOf(suggestionsMarker);
+        
+        if (suggestionsIndex !== -1) {
+            messageText = aiResponse.substring(0, suggestionsIndex).trim();
+            const suggestionsText = aiResponse.substring(suggestionsIndex + suggestionsMarker.length);
+            try {
+                suggestions = JSON.parse(suggestionsText);
+            } catch (e) {
+                console.error("Failed to parse suggestions, using default.", e);
+            }
+        }
+        
+        addMessage(messageText, false);
+        showSuggestions(suggestions);
+        
+    } catch (error) {
+        thinkingDiv.remove();
+        addMessage('The cosmic connection seems distant right now. Please try again.', false);
+    }
+}
+
+function initializeChat() {
+    chatContainer.innerHTML = '';
+    
+    const lastModelMessage = chatHistory.findLast(m => m.role === 'model');
+    if (!lastModelMessage) {
+        // Show welcome message if no chat history
+        addMessage('Welcome. The universe is listening. What thoughts ripple in your mind?', false);
+        showSuggestions(["How can I find more peace in my day?", "Tell me about the nature of thought", "What does it mean to be present?"]);
+        return;
+    }
+
+    const fullText = lastModelMessage.parts[0].text;
+    let messageText = fullText;
+    let suggestions = ["How can I find more peace?", "What is mindfulness?", "Tell me a calming thought."];
+
+    const suggestionsMarker = 'SUGGESTIONS:';
+    const suggestionsIndex = fullText.indexOf(suggestionsMarker);
+
+    if (suggestionsIndex !== -1) {
+        messageText = fullText.substring(0, suggestionsIndex).trim();
+        const suggestionsText = fullText.substring(suggestionsIndex + suggestionsMarker.length);
+        try {
+            suggestions = JSON.parse(suggestionsText);
+        } catch(e) {
+             console.error("Failed to parse initial suggestions, using default.", e);
+        }
+    }
+    
+    addMessage(messageText, false);
+    showSuggestions(suggestions);
+}
+
+// Initialize the chat when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    chatForm.addEventListener('submit', handleSubmit);
+    initializeChat();
+    userInput.focus();
+});

@@ -1,0 +1,63 @@
+/* Ether Soul - AI Companion Styles */
+
+body {
+    font-family: 'Manrope', sans-serif;
+    background-color: #030712; /* Darker Blue-Gray */
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+#chat-container {
+    position: relative; /* Required for the pseudo-element watermark */
+}
+
+#chat-container::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 500px;
+    background-image: url('https://i.postimg.cc/HxKdRWzH/ES-Logo-1.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.12;
+    z-index: 0;
+    pointer-events: none;
+}
+
+#chat-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+.header-title {
+    font-family: 'EB Garamond', serif;
+    font-weight: 700;
+}
+
+.ether-word, .soul-word {
+    display: inline-block;
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.ether-word::first-letter, .soul-word::first-letter {
+    font-size: 1.4em;
+}
+
+/* Enhanced Search Bar */
+#user-input {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    background-color: #0f172a; /* Match the darker theme */
+}
+
+#user-input:focus {
+    box-shadow: 0 0 0 2px rgba(75, 85, 99, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+    background-color: #1e293b; /* Slightly lighter on focus */
+}
