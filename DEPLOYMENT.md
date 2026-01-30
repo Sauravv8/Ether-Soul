@@ -19,8 +19,8 @@
 3. Go to: **Site configuration** → **Build & deploy** → **Environment**
 4. Click **Add a variable**
 5. Enter:
-   - **Key**: `GEMINI_API_KEY`
-   - **Value**: `AIzaSyDxyalKRP1JJgMSc4qyzKHNOYlRlk0XVao`
+   - **Key**: `GROQ_API_KEY`
+   - **Value**: (Your Groq API Key starting with `gsk_`...)
 6. Click **Save**
 
 ### 3. 📦 Install Dependencies

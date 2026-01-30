@@ -2,7 +2,7 @@
 
 // API is now securely handled by Netlify serverless function
 // No API keys are stored in the browser code
-const apiUrl = '/.netlify/functions/chat';
+const apiUrl = '/api/chat';
 
 // Google Books API configuration (public API, no key needed for basic queries)
 const googleBooksUrl = "https://www.googleapis.com/books/v1/volumes";
@@ -241,11 +241,11 @@ async function searchWikipedia(query) {
             srlimit: 1
         });
         
-        const searchUrl = `${wikipediaApiUrl}?${searchParams}`;
+        const searchUrl = `${ wikipediaApiUrl }?${ searchParams }`;
         const searchResponse = await fetch(searchUrl);
         
         if (!searchResponse.ok) {
-            throw new Error(`Wikipedia search error: ${searchResponse.status}`);
+            throw new Error(`Wikipedia search error: ${ searchResponse.status } `);
         }
         
         const searchData = await searchResponse.json();
@@ -270,11 +270,11 @@ async function searchWikipedia(query) {
             exsentences: 3
         });
         
-        const extractUrl = `${wikipediaApiUrl}?${extractParams}`;
+        const extractUrl = `${ wikipediaApiUrl }?${ extractParams } `;
         const extractResponse = await fetch(extractUrl);
         
         if (!extractResponse.ok) {
-            throw new Error(`Wikipedia extract error: ${extractResponse.status}`);
+            throw new Error(`Wikipedia extract error: ${ extractResponse.status } `);
         }
         
         const extractData = await extractResponse.json();
@@ -289,16 +289,16 @@ async function searchWikipedia(query) {
         };
         
     } catch (error) {
-        console.error('Wikipedia search error:', error);
-        return null;
-    }
+    console.error('Wikipedia search error:', error);
+    return null;
+}
 }
 
 function formatWikipediaResult(result) {
     if (!result) {
         return null;
     }
-    
+
     return result.extract;
 }
 
@@ -313,67 +313,65 @@ async function handleWikipediaSearch(userMessage) {
         /^explain\s/i,
         /tell me about\s/i
     ];
-    
+
     const isWhatQuestion = whatPatterns.some(pattern => pattern.test(userMessage));
-    
+
     if (isWhatQuestion) {
         console.log('Searching Wikipedia for:', userMessage);
-        
+
         // Extract the actual topic from the question
         let searchQuery = userMessage
             .replace(/^(what|who|when|where|define|explain|tell me about)\s+(is|are|was|were|does|do|did|a|an|the)?\s*/i, '')
             .replace(/\?$/, '')
             .trim();
-        
+
         const result = await searchWikipedia(searchQuery);
         const formatted = formatWikipediaResult(result);
-        
+
         if (formatted) {
             return formatted;
         }
     }
-    
+
     return null;
 }
 
 async function callGoogleAI(userMessage) {
     console.log('Calling AI with message:', userMessage);
-    
+
     // First check if this is a Wikipedia "what is" query
     const wikiResult = await handleWikipediaSearch(userMessage);
     if (wikiResult) {
         return `${wikiResult}\n\nSUGGESTIONS:["What is mindfulness?", "Tell me about meditation", "What is consciousness?"]`;
     }
-    
+
     // Check if this is an archive-related query
     const archiveResult = await handleArchiveSearch(userMessage);
     if (archiveResult) {
         return `${archiveResult}\n\nSUGGESTIONS:["Show me historical documents", "Find classic texts in archive", "Search vintage collections"]`;
     }
-    
+
     // Then check if this is a book-related query
     const bookResult = await handleBookSearch(userMessage);
     if (bookResult) {
         return `${bookResult}\n\nSUGGESTIONS:["Tell me about mindfulness books", "Recommend books on meditation", "What should I read for inner peace?"]`;
     }
-    
+
     try {
         const requestBody = {
-            contents: [
-                { parts: [{ text: `${systemPrompt}\n\nUser: ${userMessage}` }] }
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userMessage }
             ],
-            generationConfig: {
-                temperature: 0.8,
-                topK: 40,
-                topP: 0.95,
-                maxOutputTokens: 1024,
-            },
-            model: 'gemini-2.5-flash'
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.7,
+            max_tokens: 1024,
+            top_p: 0.95
         };
-        
+
         console.log('Making secure API request via Netlify function');
         console.log('Request body:', JSON.stringify(requestBody, null, 2));
-        
+
         // Call Netlify serverless function instead of directly calling Gemini
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -382,7 +380,7 @@ async function callGoogleAI(userMessage) {
         });
 
         console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('API Error Response:', errorText);
@@ -391,9 +389,9 @@ async function callGoogleAI(userMessage) {
 
         const data = await response.json();
         console.log('API Response data:', data);
-        
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            const aiResponse = data.candidates[0].content.parts[0].text;
+
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            const aiResponse = data.choices[0].message.content;
             console.log('AI Response:', aiResponse);
             return aiResponse;
         } else {
@@ -402,11 +400,11 @@ async function callGoogleAI(userMessage) {
         }
     } catch (error) {
         console.error('API Error:', error);
-        
+
         // More varied fallback responses based on message content and random selection
         const lowerMessage = userMessage.toLowerCase();
         let fallbackResponses = [];
-        
+
         if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
             fallbackResponses = [
                 "Welcome, radiant soul. The cosmic threads have woven our paths together in this sacred moment. What whispers does your heart wish to share?",
@@ -452,9 +450,9 @@ async function callGoogleAI(userMessage) {
                 "Like a gentle river finding its way to the ocean, your thoughts flow toward understanding. What current of wisdom calls to you now?"
             ];
         }
-        
+
         const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-        
+
         // Ensure fallback responses also have suggestions
         return `${randomResponse} SUGGESTIONS:["How can I find more peace in my day?", "Tell me about the nature of thought", "What does it mean to be present?"]`;
     }
@@ -464,27 +462,27 @@ async function handleSubmit(event) {
     event.preventDefault();
     const text = userInput.value.trim();
     if (!text) return;
-    
+
     suggestionsContainer.innerHTML = '';
-    
+
     addMessage(text, true);
     chatHistory.push({ role: "user", parts: [{ text: text }] });
     userInput.value = '';
-    
+
     const thinkingDiv = addMessage('âœ¨ Reflecting on your words...', false);
-    
+
     try {
         const aiResponse = await callGoogleAI(text);
         thinkingDiv.remove();
-        
+
         chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-        
+
         let messageText = aiResponse;
         let suggestions = ["How can I find more peace?", "What is mindfulness?", "Tell me a calming thought."];
-        
+
         const suggestionsMarker = 'SUGGESTIONS:';
         const suggestionsIndex = aiResponse.indexOf(suggestionsMarker);
-        
+
         if (suggestionsIndex !== -1) {
             messageText = aiResponse.substring(0, suggestionsIndex).trim();
             const suggestionsText = aiResponse.substring(suggestionsIndex + suggestionsMarker.length);
@@ -494,10 +492,10 @@ async function handleSubmit(event) {
                 console.error("Failed to parse suggestions, using default.", e);
             }
         }
-        
+
         addMessage(messageText, false);
         showSuggestions(suggestions);
-        
+
     } catch (error) {
         thinkingDiv.remove();
         addMessage('The cosmic connection seems distant right now. Please try again.', false);
@@ -506,7 +504,7 @@ async function handleSubmit(event) {
 
 function initializeChat() {
     chatContainer.innerHTML = '';
-    
+
     const lastModelMessage = chatHistory.findLast(m => m.role === 'model');
     if (!lastModelMessage) {
         // Show welcome message if no chat history
@@ -527,17 +525,17 @@ function initializeChat() {
         const suggestionsText = fullText.substring(suggestionsIndex + suggestionsMarker.length);
         try {
             suggestions = JSON.parse(suggestionsText);
-        } catch(e) {
-             console.error("Failed to parse initial suggestions, using default.", e);
+        } catch (e) {
+            console.error("Failed to parse initial suggestions, using default.", e);
         }
     }
-    
+
     addMessage(messageText, false);
     showSuggestions(suggestions);
 }
 
 // Initialize the chat when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     chatForm.addEventListener('submit', handleSubmit);
     initializeChat();
     userInput.focus();
