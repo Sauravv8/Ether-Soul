@@ -4,7 +4,7 @@
   "description": "Ether Soul AI Companion - Secure serverless chat with Gemini API",
   "main": "index.html",
   "scripts": {
-    "build": "mkdir -p public && cp index.html script.js styles.css public/ 2>/dev/null || copy index.html public\\ && copy script.js public\\ && copy styles.css public\\"
+    "build": "chmod +x build.sh && ./build.sh"
   },
   "keywords": [
     "ai",
