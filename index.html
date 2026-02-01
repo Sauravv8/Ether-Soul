@@ -656,20 +656,7 @@
                 max-width: 85%;
             }
 
-            /* Suggestions container */
-            #suggestions-container {
-                padding: 8px 12px;
-                gap: 6px;
-                justify-content: center;
-            }
-
-            #suggestions-container button {
-                font-size: 11px;
-                padding: 6px 10px;
-                background: rgba(139, 92, 246, 0.1);
-                border-radius: 16px;
-                border: 1px solid rgba(139, 92, 246, 0.2);
-            }
+            /* Suggestions container - styles now handled by JavaScript inline styles */
 
             /* Chat input form */
             .p-4.bg-gray-950.border-t {
@@ -766,19 +753,7 @@
                 height: 36px;
             }
 
-            /* Suggestions - horizontal scroll */
-            #suggestions-container {
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                justify-content: flex-start;
-                padding-bottom: 12px;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            #suggestions-container button {
-                flex-shrink: 0;
-                white-space: nowrap;
-            }
+            /* Suggestions - styles now handled by JavaScript inline styles */
         }
 
         /* Ensure touch-friendly tap targets */
@@ -786,17 +761,228 @@
 
             button,
             .social-btn,
-            .dropdown-item,
-            #suggestions-container button {
+            .dropdown-item {
                 min-height: 44px;
                 min-width: 44px;
             }
+
+            /* Suggestion buttons excluded - handled by JavaScript */
         }
 
         /* Safe area insets for notched phones */
         @supports (padding: max(0px)) {
             .p-4.bg-gray-950.border-t {
                 padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* ========================================
+           ENHANCED MOBILE BOTTOM BAR STYLES
+           ======================================== */
+
+        /* Base Suggestion Button Styles (Desktop) */
+        .suggestion-btn {
+            color: #d1d5db !important;
+            font-size: 14px !important;
+            background: transparent !important;
+            border: none !important;
+            padding: 6px 12px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            white-space: nowrap !important;
+            box-shadow: none !important;
+            text-decoration: none !important;
+            margin: 0 !important;
+            line-height: 1.5 !important;
+        }
+
+        .suggestion-btn:hover {
+            color: #fbbf24 !important;
+            text-decoration: underline !important;
+        }
+
+        /* Suggestions Container Base Styles */
+        #suggestions-container {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            justify-content: flex-end !important;
+            background: #030712 !important;
+            padding: 8px 16px 4px 16px !important;
+        }
+
+        /* Professional Bottom Bar Container */
+        .bottom-input-container {
+            background: linear-gradient(180deg, rgba(3, 7, 18, 0.95) 0%, rgba(15, 23, 42, 1) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 215, 0, 0.1);
+            box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+
+        /* Enhanced Input Field - Better Visibility */
+        #user-input {
+            font-size: 16px !important;
+            /* Prevents iOS zoom on focus */
+            color: #f8fafc !important;
+            letter-spacing: 0.01em;
+        }
+
+        #user-input::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+
+            /* Bottom Bar Container - Professional Look */
+            .p-4.bg-gray-950.border-t {
+                padding: 12px 12px 16px 12px;
+                background: linear-gradient(180deg, rgba(3, 7, 18, 0.98) 0%, rgba(15, 23, 42, 1) 100%);
+                border-top: 1px solid rgba(255, 215, 0, 0.15);
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+            }
+
+            /* Input Field - Better Visibility */
+            #user-input {
+                font-size: 16px !important;
+                padding: 16px 56px 16px 18px !important;
+                background: rgba(30, 41, 59, 0.8) !important;
+                border: 1.5px solid rgba(255, 215, 0, 0.2) !important;
+                color: #f8fafc !important;
+                border-radius: 28px !important;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                    0 0 0 0 rgba(255, 215, 0, 0);
+                transition: all 0.3s ease;
+            }
+
+            #user-input:focus {
+                background: rgba(30, 41, 59, 1) !important;
+                border-color: rgba(255, 215, 0, 0.4) !important;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                    0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+            }
+
+            #user-input::placeholder {
+                color: #9ca3af !important;
+                font-weight: 400;
+            }
+
+            /* Submit Button - Larger & More Visible */
+            form button[type="submit"] {
+                width: 44px !important;
+                height: 44px !important;
+                right: 8px !important;
+                background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+                border: none !important;
+                box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+                transition: all 0.2s ease;
+            }
+
+            form button[type="submit"]:hover,
+            form button[type="submit"]:active {
+                transform: translateY(-50%) scale(1.05);
+                box-shadow: 0 6px 16px rgba(255, 165, 0, 0.4);
+            }
+
+            form button[type="submit"] svg {
+                color: #1a1a1a !important;
+                stroke: #1a1a1a !important;
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Suggestions - Vertically Stacked like Reference Design */
+            #suggestions-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 12px 16px 16px 16px;
+                gap: 8px;
+                background: transparent;
+            }
+
+            .suggestion-btn {
+                font-size: 14px !important;
+                padding: 4px 8px !important;
+                background: transparent !important;
+                border: none !important;
+                color: #e5e7eb !important;
+                border-radius: 0 !important;
+                font-weight: 400;
+                white-space: nowrap;
+                transition: all 0.2s ease;
+                box-shadow: none !important;
+                min-height: auto !important;
+                text-decoration: none !important;
+            }
+
+            .suggestion-btn:hover,
+            .suggestion-btn:active {
+                color: #fbbf24 !important;
+                background: transparent !important;
+                border: none !important;
+                text-decoration: underline !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            /* Even more compact for small phones */
+            .p-4.bg-gray-950.border-t {
+                padding: 10px 10px 14px 10px;
+            }
+
+            #user-input {
+                font-size: 16px !important;
+                padding: 14px 52px 14px 16px !important;
+            }
+
+            form button[type="submit"] {
+                width: 42px !important;
+                height: 42px !important;
+                right: 6px !important;
+            }
+
+            /* Suggestions - Keep vertical stacking, adjust spacing */
+            #suggestions-container {
+                padding: 10px 12px 14px 12px;
+                gap: 6px;
+            }
+
+            .suggestion-btn {
+                font-size: 13px !important;
+            }
+        }
+
+        /* Safe area for notched phones (iPhone X+, etc.) */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            @media (max-width: 768px) {
+                .p-4.bg-gray-950.border-t {
+                    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                }
+            }
+        }
+
+        /* Touch-friendly adjustments */
+        @media (hover: none) and (pointer: coarse) {
+            #user-input {
+                font-size: 16px !important;
+                /* Prevent iOS zoom */
+            }
+
+            form button[type="submit"] {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .suggestion-btn {
+                min-height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
         }
     </style>
@@ -955,7 +1141,9 @@
             </div>
         </div>
         <div id="chat-container" class="flex-1 p-4 overflow-y-auto bg-gray-950"></div>
-        <div id="suggestions-container" class="px-4 pt-2 pb-1 flex flex-wrap gap-2 justify-end bg-gray-950"></div>
+        <div id="suggestions-container"
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 16px 16px 16px; gap: 8px; background: transparent;">
+        </div>
 
         <div class="p-4 bg-gray-950 border-t border-gray-800">
             <form id="chat-form" class="flex items-center justify-center">
@@ -1664,10 +1852,87 @@ SUGGESTIONS:["deeper spiritual question 🌟", "action toward growth 🌱", "rel
 
         function showSuggestions(suggestions) {
             suggestionsContainer.innerHTML = '';
+
+            // Check if mobile (screen width <= 768px)
+            const isMobile = window.innerWidth <= 768;
+
+            // Apply container styles directly (inline to override Tailwind)
+            if (isMobile) {
+                suggestionsContainer.style.cssText = `
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    padding: 12px 16px 16px 16px !important;
+                    gap: 8px !important;
+                    background: transparent !important;
+                `;
+            } else {
+                suggestionsContainer.style.cssText = `
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                    gap: 8px !important;
+                    justify-content: flex-end !important;
+                    background: #030712 !important;
+                    padding: 8px 16px 4px 16px !important;
+                `;
+            }
+
             suggestions.forEach(suggestion => {
                 const button = document.createElement('button');
-                button.classList.add('text-purple-300', 'text-xs', 'hover:text-purple-200', 'hover:underline', 'transition', 'mb-1');
                 button.textContent = suggestion;
+
+                // Apply inline styles directly (mobile vs desktop)
+                if (isMobile) {
+                    button.style.cssText = `
+                        color: #e5e7eb !important;
+                        font-size: 14px !important;
+                        background: transparent !important;
+                        border: none !important;
+                        padding: 4px 8px !important;
+                        cursor: pointer !important;
+                        white-space: nowrap !important;
+                        box-shadow: none !important;
+                        text-decoration: none !important;
+                        margin: 0 !important;
+                        line-height: 1.5 !important;
+                        font-family: inherit !important;
+                        min-height: auto !important;
+                        min-width: auto !important;
+                        border-radius: 0 !important;
+                        outline: none !important;
+                    `;
+                } else {
+                    button.style.cssText = `
+                        color: #d1d5db !important;
+                        font-size: 14px !important;
+                        background: transparent !important;
+                        border: none !important;
+                        padding: 6px 12px !important;
+                        cursor: pointer !important;
+                        white-space: nowrap !important;
+                        box-shadow: none !important;
+                        text-decoration: none !important;
+                        margin: 0 !important;
+                        line-height: 1.5 !important;
+                        font-family: inherit !important;
+                        min-height: auto !important;
+                        min-width: auto !important;
+                        border-radius: 0 !important;
+                        outline: none !important;
+                    `;
+                }
+
+                // Add hover effect via JS
+                button.onmouseenter = () => {
+                    button.style.color = '#fbbf24';
+                    button.style.textDecoration = 'underline';
+                };
+                button.onmouseleave = () => {
+                    button.style.color = isMobile ? '#e5e7eb' : '#d1d5db';
+                    button.style.textDecoration = 'none';
+                };
+
                 button.onclick = () => {
                     userInput.value = suggestion;
                     handleSubmit({ preventDefault: () => { } });
@@ -1675,6 +1940,66 @@ SUGGESTIONS:["deeper spiritual question 🌟", "action toward growth 🌱", "rel
                 suggestionsContainer.appendChild(button);
             });
         }
+
+        // Re-apply styles on window resize
+        window.addEventListener('resize', () => {
+            const buttons = suggestionsContainer.querySelectorAll('button');
+            if (buttons.length > 0) {
+                const currentSuggestions = Array.from(buttons).map(b => b.textContent);
+                showSuggestions(currentSuggestions);
+            }
+        });
+
+        // MutationObserver to re-apply styles when DOM changes (e.g., after OAuth redirect)
+        const suggestionObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    const isMobile = window.innerWidth <= 768;
+
+                    // Re-apply container styles
+                    if (isMobile) {
+                        suggestionsContainer.style.cssText = `
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            padding: 12px 16px 16px 16px !important;
+                            gap: 8px !important;
+                            background: transparent !important;
+                        `;
+                    }
+
+                    // Re-apply button styles to any new buttons
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeName === 'BUTTON') {
+                            if (isMobile) {
+                                node.style.cssText = `
+                                    color: #e5e7eb !important;
+                                    font-size: 14px !important;
+                                    background: transparent !important;
+                                    border: none !important;
+                                    padding: 4px 8px !important;
+                                    cursor: pointer !important;
+                                    white-space: nowrap !important;
+                                    box-shadow: none !important;
+                                    text-decoration: none !important;
+                                    margin: 0 !important;
+                                    line-height: 1.5 !important;
+                                    font-family: inherit !important;
+                                    min-height: auto !important;
+                                    min-width: auto !important;
+                                    border-radius: 0 !important;
+                                    outline: none !important;
+                                `;
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        // Start observing the suggestions container
+        suggestionObserver.observe(suggestionsContainer, { childList: true, subtree: true });
 
         // Wikipedia API integration
         async function searchWikipedia(query) {
@@ -2086,6 +2411,27 @@ Example: "प्रिय आत्मा, मला समजते..." not "De
 
         addMessage(welcomeMessage, false);
         showSuggestions(welcomeSuggestions);
+
+        // Re-apply styles after a delay to ensure they override Tailwind CDN processing
+        setTimeout(() => {
+            const buttons = suggestionsContainer.querySelectorAll('button');
+            if (buttons.length > 0) {
+                const currentSuggestions = Array.from(buttons).map(b => b.textContent);
+                showSuggestions(currentSuggestions);
+            }
+        }, 100);
+
+        // Also re-apply after window load (when all resources including Tailwind CDN are ready)
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const buttons = suggestionsContainer.querySelectorAll('button');
+                if (buttons.length > 0) {
+                    const currentSuggestions = Array.from(buttons).map(b => b.textContent);
+                    showSuggestions(currentSuggestions);
+                }
+            }, 200);
+        });
+
         userInput.focus();
     </script>
 </body>

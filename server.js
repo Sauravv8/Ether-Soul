@@ -121,7 +121,14 @@ const server = http.createServer((req, res) => {
                 res.end('Server error');
             }
         } else {
-            res.writeHead(200, { 'Content-Type': contentType });
+            // Add no-cache headers for HTML files to prevent stale content
+            const headers = { 'Content-Type': contentType };
+            if (ext === '.html') {
+                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                headers['Pragma'] = 'no-cache';
+                headers['Expires'] = '0';
+            }
+            res.writeHead(200, headers);
             res.end(content);
         }
     });

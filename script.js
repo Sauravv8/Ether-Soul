@@ -78,13 +78,90 @@ function addMessage(text, isUser = false) {
 
 function showSuggestions(suggestions) {
     suggestionsContainer.innerHTML = '';
+    
+    // Check if mobile (screen width <= 768px)
+    const isMobile = window.innerWidth <= 768;
+    
+    // Apply container styles directly (inline to override Tailwind)
+    if (isMobile) {
+        suggestionsContainer.style.cssText = `
+display: flex!important;
+flex - direction: column!important;
+align - items: center!important;
+justify - content: center!important;
+padding: 12px 16px 16px 16px!important;
+gap: 8px!important;
+background: transparent!important;
+`;
+    } else {
+        suggestionsContainer.style.cssText = `
+display: flex!important;
+flex - wrap: wrap!important;
+gap: 8px!important;
+justify - content: flex - end!important;
+background: #030712!important;
+padding: 8px 16px 4px 16px!important;
+`;
+    }
+    
     suggestions.forEach(suggestion => {
         const button = document.createElement('button');
-        button.classList.add('text-purple-300', 'text-xs', 'hover:text-purple-200', 'hover:underline', 'transition', 'mb-1');
         button.textContent = suggestion;
+        
+        // Apply inline styles directly (mobile vs desktop)
+        if (isMobile) {
+            button.style.cssText = `
+color: #e5e7eb!important;
+font - size: 14px!important;
+background: transparent!important;
+border: none!important;
+padding: 4px 8px!important;
+cursor: pointer!important;
+white - space: nowrap!important;
+box - shadow: none!important;
+text - decoration: none!important;
+margin: 0!important;
+line - height: 1.5!important;
+font - family: inherit!important;
+min - height: auto!important;
+min - width: auto!important;
+border - radius: 0!important;
+outline: none!important;
+`;
+        } else {
+            button.style.cssText = `
+color: #d1d5db!important;
+font - size: 14px!important;
+background: transparent!important;
+border: none!important;
+padding: 6px 12px!important;
+cursor: pointer!important;
+white - space: nowrap!important;
+box - shadow: none!important;
+text - decoration: none!important;
+margin: 0!important;
+line - height: 1.5!important;
+font - family: inherit!important;
+min - height: auto!important;
+min - width: auto!important;
+border - radius: 0!important;
+outline: none!important;
+`;
+        }
+        
+        // Add hover effect via JS
+        button.onmouseenter = () => {
+            button.style.color = '#fbbf24';
+            button.style.textDecoration = 'underline';
+        };
+        button.onmouseleave = () => {
+            button.style.color = isMobile ? '#e5e7eb' : '#d1d5db';
+            button.style.textDecoration = 'none';
+        };
+        
         button.onclick = () => {
             userInput.value = suggestion;
-            handleSubmit({ preventDefault: () => {} }); // Manually trigger submit
+            handleSubmit({ preventDefault: () => {} });
         };
         suggestionsContainer.appendChild(button);
     });
@@ -241,7 +318,7 @@ async function searchWikipedia(query) {
             srlimit: 1
         });
         
-        const searchUrl = `${ wikipediaApiUrl }?${ searchParams }`;
+        const searchUrl = `${ wikipediaApiUrl }?${ searchParams } `;
         const searchResponse = await fetch(searchUrl);
         
         if (!searchResponse.ok) {
